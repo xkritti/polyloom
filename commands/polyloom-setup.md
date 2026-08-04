@@ -10,6 +10,8 @@ $ARGUMENTS
 
 ## Setup wizard
 
+This wizard is ZCode-only. Codex setup selects model and effort only; Codex provider is configured by Codex runtime settings and is not asked here.
+
 Run this wizard when the user has not yet configured `team.json`, or when they
 ask to reconfigure the team.
 

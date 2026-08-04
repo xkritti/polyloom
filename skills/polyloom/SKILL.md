@@ -9,6 +9,14 @@ description: >-
 
 # Polyloom
 
+## Runtime configuration
+
+ZCode supports provider, model, and effort selection through its provider registry.
+Codex agent TOML supports model and `model_reasoning_effort`, but Codex provider
+Codex provider cannot be selected in the agent file; the active Codex provider is configured by
+Codex runtime configuration. Do not claim that Polyloom selects a Codex provider.
+
+
 The lead is the only reviewer. Lead plans, delegates, inspects diffs, runs verification, and delivers evidence. Lead is coordination-only: Never modify source files directly, write implementation code, create tests, or create migrations. Delegate every repository mutation to Builder or Runner. If work fails, return it to the same responsible worker; the parent may not fix the implementation.
 
 ## Team contract
