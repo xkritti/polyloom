@@ -80,16 +80,40 @@ def interactive_overwrite(target: Path | None, runtime: str, force: bool) -> tup
     raise ValueError("installation cancelled")
 
 
+def choose_roles_to_configure(existing: dict[str, dict[str, str]] | None) -> list[str]:
+    if not existing:
+        return list(ROLES)
+    choice = select_menu(
+        "Reconfigure:",
+        [("one", "One role"), ("all", "All roles"), ("keep", "Keep current team")],
+    )
+    if choice == "all":
+        return list(ROLES)
+    if choice == "keep":
+        return []
+    return [select_menu("Which role?", [(r, f"{r} (current: {existing.get(r, {}).get('model', '-')})") for r in ROLES])]
+
+
 def configure_zcode_catalog(config_path: Path, team: Path, dry_run: bool) -> None:
     config = load_zcode_config(config_path)
-    selections = {role: choose_zcode_role(config, role) for role in ROLES}
-    print_summary(selections)
+    existing = {}
+    if team.exists():
+        try:
+            existing = json.loads(team.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            existing = {}
+    roles = choose_roles_to_configure(existing)
+    selections = {role: choose_zcode_role(config, role) for role in roles}
+    merged = dict(existing)
+    merged.update(selections)
+    print_summary(merged)
     if dry_run:
-        print("[dry run] ZCode team:", json.dumps(selections))
+        print("[dry run] ZCode team:", json.dumps(merged))
         return
     team.parent.mkdir(parents=True, exist_ok=True)
-    team.write_text(json.dumps(selections, indent=2) + "\n", encoding="utf-8")
+    team.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
     print(f"saved ZCode team configuration: {team}")
+
 
 
 # Interactive menus use the active ZCode registry only. Credentials are never displayed.
@@ -160,27 +184,40 @@ def print_summary(selections: dict[str, dict[str, str]]) -> None:
 
 
 def configure_zcode(args: argparse.Namespace, team: Path, dry_run: bool) -> None:
-    selections: dict[str, dict[str, str]] = {}
     config = load_zcode_config(args.zcode_config)
+    existing = {}
+    if team.exists():
+        try:
+            existing = json.loads(team.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            existing = {}
     values = {role: getattr(args, role) for role in ROLES}
-    for role in ROLES:
-        value = values[role]
-        if value is None and not args.non_interactive:
-            selections[role] = interactive_zcode_role(role, config)
-            continue
-        if value is None:
-            raise ValueError(f"missing --{role} selection")
-        provider, model, effort = split_selection(value)
-        entry = {"provider": provider, "model": model}
-        if effort:
-            entry["effort"] = effort
+    has_flags = any(values.values())
+    if args.non_interactive and not has_flags:
+        raise ValueError("missing role selection flags for non-interactive mode")
+    if has_flags:
+        roles = [r for r in ROLES if values[r]]
+    else:
+        roles = choose_roles_to_configure(existing)
+    selections = {}
+    for role in roles:
+        value = values.get(role)
+        if value:
+            provider, model, effort = split_selection(value)
+            entry = {"provider": provider, "model": model}
+            if effort:
+                entry["effort"] = effort
+        else:
+            entry = choose_zcode_role(config, role)
         selections[role] = entry
-    print_summary(selections)
+    merged = dict(existing)
+    merged.update(selections)
+    print_summary(merged)
     if dry_run:
-        print("[dry run] ZCode team:", json.dumps(selections))
+        print("[dry run] ZCode team:", json.dumps(merged))
         return
     team.parent.mkdir(parents=True, exist_ok=True)
-    team.write_text(json.dumps(selections, indent=2) + "\n", encoding="utf-8")
+    team.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
     print(f"saved ZCode team configuration: {team}")
     print("validate_team_config: pending runtime validation")
 
