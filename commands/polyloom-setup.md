@@ -17,43 +17,47 @@ ask to reconfigure the team.
 
 For each role in order — `lead`, `builder`, `runner`:
 
-1. Show the list of available models from the active ZCode provider registry.
-   Call `polyloom_config.py list` to get the current catalog.
-2. Ask the user which model to use for this role.
-   Accept the provider/model pair, e.g. `1024d7cc.../gpt-5.6-sol`.
-3. If the selected model has reasoning variants, ask which effort to use.
-   Show only the supported variants for that model.
-   If the model has no reasoning variants, skip the effort question.
-4. Save the selection by calling:
+1. Show available providers from the active ZCode config by calling
+   `polyloom_config.py list`. Each line shows `provider/model: efforts`.
+2. Ask the user to choose a **provider** first.
+   Show only enabled providers.
+3. After the user picks a provider, show only models under that provider.
+   Ask the user to choose a **model**.
+4. After the user picks a model, check if that model has reasoning variants.
+   If yes, show the supported efforts and ask the user to choose one.
+   If no variants exist, skip the effort question.
+5. Save by calling:
    ```
    polyloom_config.py set <role> <provider> <model> <effort>
    ```
+   Omit `<effort>` if the model has no reasoning variants.
 
 After all three roles are configured:
 
-5. Show a summary table:
+6. Show a summary table:
 
    ```
-   | Role    | Provider | Model         | Effort  |
-   |---------|----------|---------------|---------|
-   | lead    | ...      | gpt-5.6-sol   | medium  |
-   | builder | ...      | gpt-5.6-terra | high    |
-   | runner  | ...      | gpt-5.6-luna  | low     |
+   | Role    | Provider                                | Model         | Effort  |
+   |---------|----------------------------------------|---------------|---------|
+   | lead    | 1024d7cc-...-db9148943070              | gpt-5.6-sol   | medium  |
+   | builder | 1024d7cc-...-db9148943070              | gpt-5.6-terra | high    |
+   | runner  | 1024d7cc-...-db9148943070              | gpt-5.6-luna  | low     |
    ```
 
-6. Validate the full team by calling `polyloom_config.py validate`.
-7. If valid, confirm the team is ready. If the user provided a goal as
+7. Validate the full team by calling `polyloom_config.py validate`.
+8. If valid, confirm the team is ready. If the user provided a goal as
    argument, proceed to orchestrate it using `/polyloom`.
 
 ### Rules
 
-- One question at a time. Do not ask all three roles in a single message.
+- Ask one field at a time: provider, then model, then effort.
+- Do not ask all three roles in a single message.
 - Only show models from enabled providers.
 - Never display API keys or credentials.
 - If the user types `skip`, leave that role unconfigured and warn that the
   team is incomplete.
-- If the user types `back`, return to the previous role question.
-- Accept short answers: model name without provider prefix if unambiguous.
+- If the user types `back`, return to the previous question.
+- Accept short answers: partial provider ID or model name if unambiguous.
 - If the user says "same as builder" for runner, copy the previous selection.
 - Respond in the user's language: Thai or English.
-- Keep technical identifiers, model names, and provider IDs unchanged.
+- Keep technical identifiers, provider IDs, and model names unchanged.
