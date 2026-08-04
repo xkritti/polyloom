@@ -7,6 +7,8 @@ Interactive prompts say Choose provider, Choose model, and Choose effort, in the
 user's language (Thai or English). Existing installation overwrite requires --force.
 ZCode installation uses install_zcode semantics; Codex uses install_codex semantics.
 The wizard lists available models through polyloom_config.py and validates team configuration.
+Interactive runtime menu: 1) ZCode, 2) Codex, 3) Both. Existing installation menu: Overwrite, Keep existing, Cancel.
+The implementation delegates installation to scripts/install.py.
 """
 from __future__ import annotations
 
@@ -41,12 +43,46 @@ def parser() -> argparse.ArgumentParser:
     return p
 
 
-def ask_runtime() -> str:
+def select_menu(title: str, options: list[tuple[str, str]]) -> str:
+    print(title)
+    for number, (_, label) in enumerate(options, 1):
+        print(f"{number}) {label}")
     while True:
-        value = input("Install for [zcode/codex/both]: ").strip().lower()
-        if value in {"zcode", "codex", "both"}:
-            return value
-        print("Choose zcode, codex, or both.")
+        value = input("Select: ").strip()
+        if value.isdigit() and 1 <= int(value) <= len(options):
+            return options[int(value) - 1][0]
+        print("Invalid choice")
+
+
+def ask_runtime() -> str:
+    return select_menu(
+        "Install for:",
+        [("zcode", "ZCode"), ("codex", "Codex"), ("both", "Both")],
+    )
+
+
+def confirm_overwrite(path: Path) -> str:
+    return select_menu(
+        f"Existing installation found at {path}",
+        [("force", "Overwrite"), ("keep", "Keep existing"), ("cancel", "Cancel")],
+    )
+
+
+def interactive_overwrite(target: Path | None, runtime: str, force: bool) -> tuple[bool, bool]:
+    if force or target is None:
+        return force, False
+    destination = target / "polyloom" if runtime == "zcode" else target / "agents"
+    if not destination.exists():
+        return False, False
+    choice = select_menu(
+        f"Existing installation found at {destination}",
+        [("force", "Overwrite"), ("keep", "Keep existing"), ("cancel", "Cancel")],
+    )
+    if choice == "force":
+        return True, False
+    if choice == "keep":
+        return False, True
+    raise ValueError("installation cancelled")
 
 
 def split_selection(value: str) -> tuple[str, str, str | None]:
@@ -139,14 +175,23 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         runtime = args.runtime or ask_runtime()
+        skip_zcode = skip_codex = False
+        if not args.non_interactive and not args.dry_run:
+            probe = args.target
+            if runtime in ("zcode", "both"):
+                ztarget = probe or Path.home() / ".zcode/cli/plugins/local"
+                args.force, skip_zcode = interactive_overwrite(ztarget, "zcode", args.force)
+            if runtime in ("codex", "both"):
+                ctarget = probe or Path.home() / ".codex"
+                args.force, skip_codex = interactive_overwrite(ctarget, "codex", args.force)
         if args.codex_provider:
             raise ValueError("Codex does not support --codex-provider")
-        if runtime in ("zcode", "both"):
+        if runtime in ("zcode", "both") and not skip_zcode:
             run_install("zcode", args.target, args.force, args.dry_run)
             team = args.team or Path.home() / ".zcode/cli/plugins/local/polyloom/data/team.json"
             if args.non_interactive or args.lead or args.builder or args.runner:
                 configure_zcode(args, team, args.dry_run)
-        if runtime in ("codex", "both"):
+        if runtime in ("codex", "both") and not skip_codex:
             run_install("codex", args.target, args.force, args.dry_run)
             configure_codex(args)
         print("Validated runtime installation and configuration.")
