@@ -61,6 +61,12 @@ def test_command_preserves_three_roles() -> None:
     assert "$ARGUMENTS" in command
     assert "Do not create a separate reviewer role" in command
     assert "Terra" not in command and "Luna" not in command
+    assert "team configuration" in command
+    assert "model alias" in command
+    assert "coordination-only" in command
+    assert "overlapping write scopes" in command
+    assert "same responsible worker" in command
+    assert "user authorized" in command
 
 
 def test_plugin_manifest_bundles_skill_and_command() -> None:
