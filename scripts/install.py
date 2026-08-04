@@ -15,6 +15,7 @@ PLUGIN_NAME = "polyloom"
 BUNDLE = [
     ".zcode-plugin/plugin.json",
     "commands/polyloom.md",
+    "commands/polyloom-setup.md",
     "skills/polyloom/SKILL.md",
     "scripts/polyloom_config.py",
     "scripts/zcode_config.py",
