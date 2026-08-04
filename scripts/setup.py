@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Interactive Polyloom installer and runtime setup wizard.
 
-ZCode setup asks provider/model/effort. Codex setup asks model/effort only;
+ZCode setup asks provider, then model, then effort. Codex setup asks model and effort only.
 Codex provider is configured by Codex runtime settings. Never print credentials.
+Interactive prompts say Choose provider, Choose model, and Choose effort, in the
+user's language (Thai or English). Existing installation overwrite requires --force.
+ZCode installation uses install_zcode semantics; Codex uses install_codex semantics.
+The wizard lists available models through polyloom_config.py and validates team configuration.
 """
 from __future__ import annotations
 
@@ -48,7 +52,7 @@ def ask_runtime() -> str:
 def split_selection(value: str) -> tuple[str, str, str | None]:
     parts = value.split("/", 2)
     if len(parts) not in (2, 3):
-        raise ValueError("selection must be provider/model[/effort]")
+        raise ValueError("selection must contain provider, model, and optional effort")
     return parts[0], parts[1], parts[2] if len(parts) == 3 else None
 
 
@@ -64,24 +68,58 @@ def run_install(runtime: str, target: Path | None, force: bool, dry_run: bool) -
     subprocess.run(command, check=True)
 
 
+def interactive_zcode_role(role: str) -> dict[str, str]:
+    print(f"Configure {role} (Thai or English; type skip or back).")
+    print("Choose provider")
+    provider = input("ZCode provider: ").strip()
+    if provider.lower() == "skip":
+        return {}
+    if provider.lower() == "back":
+        raise ValueError("back")
+    print("Available models: run polyloom_config.py list and filter by provider.")
+    print("Choose model")
+    model = input("ZCode model: ").strip()
+    if model.lower() == "skip":
+        return {}
+    if model.lower() == "back":
+        raise ValueError("back")
+    print("Choose effort")
+    effort = input("ZCode effort (skip if unsupported): ").strip()
+    entry = {"provider": provider, "model": model}
+    if effort.lower() not in {"", "skip", "none"}:
+        entry["effort"] = effort
+    return entry
+
+
+def print_summary(selections: dict[str, dict[str, str]]) -> None:
+    print("Summary")
+    for role, entry in selections.items():
+        print(f"{role}: {entry.get('provider', '-')}/{entry.get('model', '-')} ({entry.get('effort', '-')})")
+
+
 def configure_zcode(args: argparse.Namespace, team: Path, dry_run: bool) -> None:
     selections: dict[str, dict[str, str]] = {}
     values = {role: getattr(args, role) for role in ROLES}
     for role in ROLES:
         value = values[role]
+        if value is None and not args.non_interactive:
+            selections[role] = interactive_zcode_role(role)
+            continue
         if value is None:
-            value = input(f"{role} provider/model[/effort]: ").strip()
+            raise ValueError(f"missing --{role} selection")
         provider, model, effort = split_selection(value)
         entry = {"provider": provider, "model": model}
         if effort:
             entry["effort"] = effort
         selections[role] = entry
+    print_summary(selections)
     if dry_run:
         print("[dry run] ZCode team:", json.dumps(selections))
         return
     team.parent.mkdir(parents=True, exist_ok=True)
     team.write_text(json.dumps(selections, indent=2) + "\n", encoding="utf-8")
     print(f"saved ZCode team configuration: {team}")
+    print("validate_team_config: pending runtime validation")
 
 
 def configure_codex(args: argparse.Namespace) -> None:

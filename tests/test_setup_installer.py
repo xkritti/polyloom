@@ -55,7 +55,7 @@ def test_setup_rejects_provider_for_codex(tmp_path: Path):
 
 def test_setup_source_documents_runtime_boundary():
     text = SETUP.read_text(encoding="utf-8")
-    assert "provider/model/effort" in text
+    assert "provider, then model, then effort" in text
     assert "Codex" in text
     assert "credentials" in text.lower()
     assert "validate" in text.lower()
