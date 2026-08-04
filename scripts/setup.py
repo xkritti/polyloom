@@ -189,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
         if runtime in ("zcode", "both") and not skip_zcode:
             run_install("zcode", args.target, args.force, args.dry_run)
             team = args.team or Path.home() / ".zcode/cli/plugins/local/polyloom/data/team.json"
-            if args.non_interactive or args.lead or args.builder or args.runner:
+            if not args.non_interactive or args.lead or args.builder or args.runner:
                 configure_zcode(args, team, args.dry_run)
         if runtime in ("codex", "both") and not skip_codex:
             run_install("codex", args.target, args.force, args.dry_run)
