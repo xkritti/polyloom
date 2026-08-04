@@ -9,8 +9,19 @@ import tomllib
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL_NAME = "solweaver"
+SKILL_NAME = "polyloom"
 SKILL_DIR = ROOT / "skills" / SKILL_NAME
+
+
+def validate_polyloom() -> None:
+    path = SKILL_DIR / "SKILL.md"
+    require(path.exists(), "Polyloom SKILL.md is missing")
+    text = path.read_text(encoding="utf-8")
+    require("name: polyloom" in text, "skill name must be polyloom")
+    require("lead" in text and "builder" in text and "runner" in text, "three-role contract is incomplete")
+    require("Never modify source files directly" in text, "lead must be coordination-only")
+    manifest = ROOT / ".zcode-plugin" / "plugin.json"
+    require(manifest.exists(), "ZCode plugin manifest is missing")
 
 
 def require(condition: bool, message: str) -> None:
@@ -90,11 +101,8 @@ def validate_examples() -> None:
 
 
 def main() -> int:
-    validate_skill()
-    validate_worker("terra-worker.toml", "terra_worker", "gpt-5.6-terra")
-    validate_worker("luna-worker.toml", "luna_worker", "gpt-5.6-luna")
-    validate_examples()
-    print("Validation passed: Sol orchestrator, Terra max, Luna max.")
+    validate_polyloom()
+    print("Validation passed: Polyloom ZCode plugin and three-role contract.")
     return 0
 
 
