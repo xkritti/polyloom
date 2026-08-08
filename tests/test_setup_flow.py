@@ -17,7 +17,7 @@ def test_interactive_mode_does_not_finish_without_team_setup():
 
 def test_interactive_mode_configures_codex_after_install():
     text = SETUP.read_text(encoding="utf-8")
-    assert "configure_codex(args)" in text
+    assert "configure_codex(args, target, args.dry_run)" in text
 
 
 def test_zcode_setup_has_three_role_prompts():

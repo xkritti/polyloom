@@ -16,11 +16,13 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from zcode_config import load_zcode_config
+from zcode_config import load_zcode_config, validate_team_config
 
 
 def catalog_providers(config: dict) -> list[str]:
@@ -69,7 +71,10 @@ def ask_runtime() -> str:
 def interactive_overwrite(target: Path | None, runtime: str, force: bool) -> tuple[bool, bool]:
     if force or target is None:
         return force, False
-    destination = target / "polyloom" if runtime == "zcode" else target / "agents"
+    if runtime == "zcode":
+        destination = target / "cli/plugins/cache/polyloom-local/polyloom/0.1.0"
+    else:
+        destination = target / "agents"
     if not destination.exists():
         return False, False
     choice = confirm_overwrite(destination)
@@ -106,12 +111,12 @@ def configure_zcode_catalog(config_path: Path, team: Path, dry_run: bool) -> Non
     selections = {role: choose_zcode_role(config, role) for role in roles}
     merged = dict(existing)
     merged.update(selections)
+    validate_team_config(config, merged)
     print_summary(merged)
     if dry_run:
         print("[dry run] ZCode team:", json.dumps(merged))
         return
-    team.parent.mkdir(parents=True, exist_ok=True)
-    team.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
+    write_json(team, merged)
     print(f"saved ZCode team configuration: {team}")
 
 
@@ -167,7 +172,8 @@ def run_install(runtime: str, target: Path | None, force: bool, dry_run: bool) -
         return
     command = [sys.executable, str(INSTALL), "--runtime", runtime]
     if target:
-        command += ["--target", str(target)]
+        flag = "--zcode-home" if runtime == "zcode" else "--target"
+        command += [flag, str(target)]
     if force:
         command.append("--force")
     subprocess.run(command, check=True)
@@ -212,38 +218,91 @@ def configure_zcode(args: argparse.Namespace, team: Path, dry_run: bool) -> None
         selections[role] = entry
     merged = dict(existing)
     merged.update(selections)
+    validate_team_config(config, merged)
     print_summary(merged)
     if dry_run:
         print("[dry run] ZCode team:", json.dumps(merged))
         return
-    team.parent.mkdir(parents=True, exist_ok=True)
-    team.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
+    write_json(team, merged)
     print(f"saved ZCode team configuration: {team}")
-    print("validate_team_config: pending runtime validation")
+    print("Validated ZCode team configuration.")
 
 
-def configure_codex(args: argparse.Namespace) -> None:
+def write_json(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=path.parent, delete=False
+    ) as handle:
+        handle.write(json.dumps(data, indent=2, sort_keys=True) + "\n")
+        temporary = Path(handle.name)
+    try:
+        temporary.replace(path)
+    except OSError:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def configure_codex_agents(target: Path, model: str | None, effort: str | None) -> None:
+    settings = {"model": model, "model_reasoning_effort": effort}
+    settings = {key: value for key, value in settings.items() if value is not None}
+    if not settings:
+        return
+    for name in ("lead.toml", "builder-worker.toml", "runner-worker.toml"):
+        path = target / "agents" / name
+        text = path.read_text(encoding="utf-8")
+        for key, value in settings.items():
+            text, replacements = re.subn(
+                rf"^{re.escape(key)}\s*=\s*.*$",
+                lambda _: f"{key} = {json.dumps(value)}",
+                text,
+                count=1,
+                flags=re.MULTILINE,
+            )
+            if replacements != 1:
+                raise ValueError(f"{path}: missing {key}")
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=path.parent, delete=False
+        ) as handle:
+            handle.write(text)
+            temporary = Path(handle.name)
+        try:
+            temporary.replace(path)
+        except OSError:
+            temporary.unlink(missing_ok=True)
+            raise
+
+
+def configure_codex(args: argparse.Namespace, target: Path, dry_run: bool) -> None:
     if args.codex_provider:
         raise ValueError("Codex does not accept provider selection; configure provider in Codex runtime settings")
-    if args.codex_model:
-        print(f"Codex model: {args.codex_model}")
-    if args.codex_effort:
-        print(f"Codex effort: {args.codex_effort}")
+    model, effort = args.codex_model, args.codex_effort
     if not args.codex_model and not args.non_interactive:
-        model = input("Codex model (provider is configured by Codex): ").strip()
-        effort = input("Codex effort: ").strip()
-        print(f"Codex selection: model={model}, effort={effort}")
+        model = input("Codex model (provider is configured by Codex): ").strip() or None
+        effort = input("Codex effort: ").strip() or None
+    for label, value in (("model", model), ("effort", effort)):
+        if value is not None and not value.strip():
+            raise ValueError(f"Codex {label} must not be empty")
+    if not model and not effort:
+        print("Codex agent defaults unchanged.")
+        return
+    if dry_run:
+        print(f"[dry run] Codex agent defaults: model={model or '(unchanged)'}, effort={effort or '(unchanged)'}")
+        return
+    configure_codex_agents(target, model, effort)
+    print(f"saved Codex agent defaults: Codex model: {model or '(unchanged)'}, Codex effort: {effort or '(unchanged)'}")
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         runtime = args.runtime or ask_runtime()
+        if runtime == "zcode" and (args.codex_model or args.codex_effort):
+            raise ValueError("--codex-model and --codex-effort require the Codex runtime")
         skip_zcode = skip_codex = False
         if not args.non_interactive and not args.dry_run:
             probe = args.target
             if runtime in ("zcode", "both"):
-                ztarget = probe or Path.home() / ".zcode/cli/plugins/local"
+                ztarget = probe or Path.home() / ".zcode"
                 args.force, skip_zcode = interactive_overwrite(ztarget, "zcode", args.force)
             if runtime in ("codex", "both"):
                 ctarget = probe or Path.home() / ".codex"
@@ -252,13 +311,13 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("Codex does not support --codex-provider")
         if runtime in ("zcode", "both") and not skip_zcode:
             run_install("zcode", args.target, args.force, args.dry_run)
-            team = args.team or Path.home() / ".zcode/cli/plugins/local/polyloom/data/team.json"
+            team = args.team or Path.home() / ".zcode/cli/plugins/cache/polyloom-local/polyloom/0.1.0/data/team.json"
             if not args.non_interactive or args.lead or args.builder or args.runner:
                 configure_zcode(args, team, args.dry_run)
         if runtime in ("codex", "both") and not skip_codex:
             run_install("codex", args.target, args.force, args.dry_run)
-            configure_codex(args)
-        print("Validated runtime installation and configuration.")
+            target = args.target or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
+            configure_codex(args, target, args.dry_run)
         print("Setup complete." if not args.dry_run else "Dry run complete.")
         return 0
     except (ValueError, OSError, subprocess.CalledProcessError) as exc:

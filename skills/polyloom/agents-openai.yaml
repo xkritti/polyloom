@@ -1,4 +1,4 @@
 interface:
-  display_name: "Solweaver"
-  short_description: "Sol leads Terra and Luna workers"
-  default_prompt: "Use $solweaver to plan, delegate, integrate, and verify this software-development goal."
+  display_name: "Polyloom"
+  short_description: "Lead coordinates builder and runner workers"
+  default_prompt: "Use $polyloom to plan, delegate, integrate, and verify this software-development goal."

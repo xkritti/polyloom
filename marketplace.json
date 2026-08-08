@@ -1,0 +1,15 @@
+{
+  "name": "polyloom-local",
+  "description": "Polyloom multi-agent software team for ZCode.",
+  "plugins": [
+    {
+      "name": "polyloom",
+      "description": "Polyloom multi-agent software team for ZCode.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "xkritti"
+      }
+    }
+  ]
+}

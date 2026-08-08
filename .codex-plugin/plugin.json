@@ -1,0 +1,20 @@
+{
+  "name": "polyloom",
+  "version": "0.1.0",
+  "description": "Polyloom multi-agent software team for Codex.",
+  "author": { "name": "xkritti" },
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Polyloom",
+    "shortDescription": "Lead-coordinated software team with builder and runner workers.",
+    "longDescription": "Polyloom provides a three-role orchestration contract for Codex: the lead plans, delegates, integrates, reviews, and delivers; the builder handles coupled implementation; and the runner handles narrow mechanical work.",
+    "developerName": "xkritti",
+    "category": "Developer Tools",
+    "capabilities": ["Plan", "Delegate", "Implement", "Verify"],
+    "defaultPrompt": ["Use $polyloom to plan, delegate, integrate, and verify this software-development goal."],
+    "composerIcon": "./assets/polyloom-mark.png",
+    "logo": "./assets/polyloom-mark.png",
+    "logoDark": "./assets/polyloom-mark.png"
+  }
+}

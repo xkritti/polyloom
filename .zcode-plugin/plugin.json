@@ -1,7 +1,7 @@
 {
   "name": "polyloom",
   "version": "0.1.0",
-  "description": "Solweaver-style multi-agent software team for ZCode.",
+  "description": "Polyloom multi-agent software team for ZCode.",
   "author": { "name": "xkritti" },
   "license": "MIT",
   "skills": "skills",

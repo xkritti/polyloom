@@ -247,12 +247,13 @@ def test_setup_menu_has_force_passthrough() -> None:
 
 def test_setup_menu_has_target_passthrough() -> None:
     text = SETUP.read_text(encoding="utf-8")
-    assert 'command += ["--target", str(target)]' in text
+    assert 'flag = "--zcode-home" if runtime == "zcode" else "--target"' in text
+    assert 'command += [flag, str(target)]' in text
 
 
 def test_setup_menu_has_team_write() -> None:
     text = SETUP.read_text(encoding="utf-8")
-    assert "team.write_text" in text
+    assert "write_json(team, merged)" in text
 
 
 def test_setup_menu_has_json_config() -> None:

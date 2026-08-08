@@ -5,12 +5,16 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-import tomllib
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_NAME = "polyloom"
 SKILL_DIR = ROOT / "skills" / SKILL_NAME
+WORKERS = (
+    ("lead.toml", "lead", "medium"),
+    ("builder-worker.toml", "builder", "high"),
+    ("runner-worker.toml", "runner", "low"),
+)
 
 
 def validate_polyloom() -> None:
@@ -20,6 +24,7 @@ def validate_polyloom() -> None:
     require("name: polyloom" in text, "skill name must be polyloom")
     require("lead" in text and "builder" in text and "runner" in text, "three-role contract is incomplete")
     require("Never modify source files directly" in text, "lead must be coordination-only")
+    require("Delegate every repository mutation to Builder or Runner" in text, "lead must delegate mutations")
     manifest = ROOT / ".zcode-plugin" / "plugin.json"
     require(manifest.exists(), "ZCode plugin manifest is missing")
 
@@ -57,51 +62,51 @@ def validate_skill() -> None:
     )
     require("description: >-" in frontmatter, "description must use folded YAML")
     require(bool(body), "SKILL.md body must not be empty")
-    require("terra_worker" in text, "skill must route Terra work")
-    require("luna_worker" in text, "skill must route Luna work")
-
-    ui = (SKILL_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
-    require(
-        f"${SKILL_NAME}" in ui,
-        "openai.yaml default prompt must invoke the skill",
-    )
+    require("terra_worker" not in text and "luna_worker" not in text, "skill must use Polyloom role names")
+    require((SKILL_DIR / "agents-openai.yaml").exists(), "agents-openai.yaml is missing")
 
 
-def validate_worker(filename: str, name: str, model: str) -> None:
+def load_agent_toml(path: Path) -> dict[str, str]:
+    """Read the flat agent settings needed by this validator on Python 3.9+."""
+    data: dict[str, str] = {}
+    wanted = {"name", "model", "model_reasoning_effort"}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = re.fullmatch(r'([a-z_]+)\s*=\s*"([^\"]*)"', line)
+        if match and match.group(1) in wanted:
+            data[match.group(1)] = match.group(2)
+    return data
+
+
+def validate_worker(filename: str, name: str, effort: str) -> None:
     path = ROOT / "agents" / filename
-    with path.open("rb") as handle:
-        data = tomllib.load(handle)
+    require(path.exists(), f"{filename}: agent manifest is missing")
+    text = path.read_text(encoding="utf-8")
+    data = load_agent_toml(path)
 
     require(data.get("name") == name, f"{filename}: incorrect agent name")
-    require(data.get("model") == model, f"{filename}: incorrect model")
+    require(bool(data.get("model")), f"{filename}: missing model")
     require(
-        data.get("model_reasoning_effort") == "max",
-        f"{filename}: reasoning effort must be max",
+        data.get("model_reasoning_effort") == effort,
+        f"{filename}: reasoning effort must be {effort}",
     )
     require(
-        bool(data.get("developer_instructions")),
+        'developer_instructions = """' in text,
         f"{filename}: missing developer instructions",
     )
 
 
 def validate_examples() -> None:
-    with (ROOT / "examples" / "config.toml").open("rb") as handle:
-        config = tomllib.load(handle)
-    require(config.get("model") == "gpt-5.6-sol", "parent model must be Sol")
-    require(
-        config.get("model_reasoning_effort") == "max",
-        "parent reasoning effort must be max",
-    )
-    require(config.get("agents", {}).get("max_depth") == 1, "max_depth must be 1")
-
     policy = (ROOT / "examples" / "AGENTS.md").read_text(encoding="utf-8")
     require(f"${SKILL_NAME}" in policy, "AGENTS example must load the skill")
-    require("terra_worker" in policy, "AGENTS example must mention Terra")
-    require("luna_worker" in policy, "AGENTS example must mention Luna")
+    require("builder" in policy and "runner" in policy, "AGENTS example must describe worker roles")
 
 
 def main() -> int:
     validate_polyloom()
+    validate_skill()
+    for worker in WORKERS:
+        validate_worker(*worker)
+    validate_examples()
     print("Validation passed: Polyloom ZCode plugin and three-role contract.")
     return 0
 

@@ -14,3 +14,12 @@ def test_validator_uses_polyloom_skill_and_does_not_require_codex_models() -> No
 
 def test_polyloom_validation_accepts_zcode_plugin() -> None:
     validate.validate_polyloom()
+
+
+def test_validator_checks_current_agent_manifests() -> None:
+    for worker in validate.WORKERS:
+        validate.validate_worker(*worker)
+
+
+def test_validator_uses_python_39_compatible_agent_reader() -> None:
+    assert "tomllib" not in (ROOT / "scripts" / "validate.py").read_text(encoding="utf-8")
