@@ -10,14 +10,19 @@ $ARGUMENTS
 
 ## Startup checks
 
-Before delegating, the lead must:
+Codex and Claude project adapters do not require `team.json`; they inherit the
+parent runtime configuration. Only the legacy ZCode user-scope path uses
+`team.json` and provider registry validation.
 
-1. Read the team configuration from the plugin data directory (`team.json`).
+Before delegating, the orchestrator must:
+
+1. For project-scoped Codex and Claude work, use the adapter files in the project and inherit the parent runtime settings.
+2. (Legacy ZCode only) Read the team configuration from the plugin data directory (`team.json`).
    If missing, tell the user to run `polyloom_config.py set` for each role.
-2. Validate every role entry against the active ZCode provider/model registry.
-3. Report the configured `lead`, `builder`, and `runner` model selections to
+3. Validate every legacy ZCode role entry against the active provider/model registry.
+4. Report configured legacy ZCode role selections to
    the user before starting work.
-4. If the user selected different efforts for builder and runner, warn that
+5. If the user selected different efforts for legacy roles, warn that
    ZCode currently applies effort at the session level and cannot split it
    per child agent.
 
@@ -36,13 +41,13 @@ Before delegating, the lead must:
   evidence. The parent may not fix the implementation.
 - Do not deploy, commit, push, merge, or open a pull request unless user authorized.
 
-## Lead constraints
+## Orchestrator constraints
 
-- Lead is coordination-only.
-- Never modify repository files from the lead context.
-- Do not create a separate reviewer role. The lead reviews worker output.
+- Orchestrator is coordination-only; QA independently verifies.
+- Never modify repository files from the orchestrator context.
+- QA independently reviews worker output; the orchestrator coordinates.
 
-## Model routing
+## Legacy ZCode model routing
 
 - Use the `model` alias from `team.json` when invoking child agents.
 - The `model` value must match an alias the ZCode runtime can resolve.

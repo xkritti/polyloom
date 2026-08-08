@@ -1,10 +1,10 @@
 {
   "name": "polyloom-local",
-  "description": "Polyloom multi-agent software team for ZCode.",
+  "description": "Polyloom six-role software team for ZCode compatibility.",
   "plugins": [
     {
       "name": "polyloom",
-      "description": "Polyloom multi-agent software team for ZCode.",
+      "description": "Polyloom six-role software team for ZCode compatibility.",
       "version": "0.1.0",
       "source": "./",
       "author": {

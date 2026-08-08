@@ -7,13 +7,12 @@ def skill() -> str:
     return (ROOT / "skills/polyloom/SKILL.md").read_text(encoding="utf-8")
 
 
-def test_three_role_contract_and_lead_is_read_only() -> None:
+def test_six_role_contract_and_orchestrator_is_read_only() -> None:
     text = skill()
     assert "name: polyloom" in text
-    assert all(role in text for role in ("lead", "builder", "runner"))
-    assert "Never modify source files directly" in text
-    assert "Delegate every repository mutation to Builder or Runner" in text
-    assert "Do not create a separate reviewer role" in text
+    assert all(role in text for role in ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager"))
+    assert "coordination-only" in text
+    assert "independently verifies" in text
 
 
 def test_no_upstream_models_or_roles() -> None:
@@ -55,11 +54,11 @@ def test_safe_parallelism_and_verification() -> None:
     assert "user authorized" in text
 
 
-def test_command_preserves_three_roles() -> None:
+def test_command_preserves_six_roles() -> None:
     command = (ROOT / "commands/polyloom.md").read_text(encoding="utf-8")
     assert "skills: polyloom" in command
     assert "$ARGUMENTS" in command
-    assert "Do not create a separate reviewer role" in command
+    assert "QA independently reviews" in command
     assert "Terra" not in command and "Luna" not in command
     assert "team configuration" in command
     assert "model alias" in command

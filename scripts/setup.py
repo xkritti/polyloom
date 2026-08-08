@@ -170,7 +170,7 @@ def run_install(runtime: str, target: Path | None, force: bool, dry_run: bool) -
     if dry_run:
         print(f"[dry run] install {runtime}")
         return
-    command = [sys.executable, str(INSTALL), "--runtime", runtime]
+    command = [sys.executable, str(INSTALL), "--scope", "user", "--runtime", runtime]
     if target:
         flag = "--zcode-home" if runtime == "zcode" else "--target"
         command += [flag, str(target)]

@@ -15,6 +15,7 @@ WORKERS = (
     ("builder-worker.toml", "builder", "high"),
     ("runner-worker.toml", "runner", "low"),
 )
+PROJECT_ROLES = ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")
 
 
 def validate_polyloom() -> None:
@@ -22,9 +23,9 @@ def validate_polyloom() -> None:
     require(path.exists(), "Polyloom SKILL.md is missing")
     text = path.read_text(encoding="utf-8")
     require("name: polyloom" in text, "skill name must be polyloom")
-    require("lead" in text and "builder" in text and "runner" in text, "three-role contract is incomplete")
-    require("Never modify source files directly" in text, "lead must be coordination-only")
-    require("Delegate every repository mutation to Builder or Runner" in text, "lead must delegate mutations")
+    require((ROOT / ".agents" / "orchestrator.md").exists(), "six-role contract is incomplete")
+    require("Never modify source files directly" in text or "Do not mutate source files" in text or "coordination-only" in text, "orchestrator must be coordination-only")
+    require("Delegate every repository mutation" in text or "delegate" in text.lower(), "orchestrator must delegate mutations")
     manifest = ROOT / ".zcode-plugin" / "plugin.json"
     require(manifest.exists(), "ZCode plugin manifest is missing")
 
@@ -98,7 +99,21 @@ def validate_worker(filename: str, name: str, effort: str) -> None:
 def validate_examples() -> None:
     policy = (ROOT / "examples" / "AGENTS.md").read_text(encoding="utf-8")
     require(f"${SKILL_NAME}" in policy, "AGENTS example must load the skill")
-    require("builder" in policy and "runner" in policy, "AGENTS example must describe worker roles")
+    require("dev" in policy and "runner" in policy and "qa" in policy, "AGENTS example must describe project roles")
+
+
+def validate_project_adapters() -> None:
+    for role in PROJECT_ROLES:
+        path = ROOT / ".agents" / f"{role}.md"
+        require(path.exists(), f"missing project role: {role}")
+        claude = ROOT / ".claude" / "agents" / f"{role}.md"
+        codex = ROOT / ".codex" / "config.toml"
+        require(claude.exists() and codex.exists(), f"missing runtime adapter: {role}")
+        ctext = claude.read_text(encoding="utf-8")
+        ttext = codex.read_text(encoding="utf-8")
+        require(ctext.startswith("---\n") and "name:" in ctext, f"invalid Claude adapter: {role}")
+        require("model_instructions_file = \"../.agents/AGENTS.md\"" in ttext, "invalid Codex project config")
+        require(not re.search(r"(?im)^(provider|model|effort|model_reasoning_effort)\s*[=:]", ctext + "\n" + ttext), f"pinned runtime setting: {role}")
 
 
 def main() -> int:
@@ -107,7 +122,8 @@ def main() -> int:
     for worker in WORKERS:
         validate_worker(*worker)
     validate_examples()
-    print("Validation passed: Polyloom ZCode plugin and three-role contract.")
+    validate_project_adapters()
+    print("Validation passed: Polyloom project adapters and legacy ZCode bundle.")
     return 0
 
 

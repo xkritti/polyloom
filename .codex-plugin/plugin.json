@@ -7,8 +7,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Polyloom",
-    "shortDescription": "Lead-coordinated software team with builder and runner workers.",
-    "longDescription": "Polyloom provides a three-role orchestration contract for Codex: the lead plans, delegates, integrates, reviews, and delivers; the builder handles coupled implementation; and the runner handles narrow mechanical work.",
+    "shortDescription": "Project-local six-role software-development team for Codex and Claude.",
+    "longDescription": "Polyloom provides an orchestrator, senior dev, bounded runner, independent QA verifier, and on-command Git and Plane support roles.",
     "developerName": "xkritti",
     "category": "Developer Tools",
     "capabilities": ["Plan", "Delegate", "Implement", "Verify"],

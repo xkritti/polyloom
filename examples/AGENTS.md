@@ -12,9 +12,9 @@ explicit request to use a software team, agents, subagents, delegation, or
 parallel work, as authorization to use bounded subagents when they materially
 help.
 
-Use `builder` for the default or judgment-heavy implementation path. Use
-`runner` for narrow, low-coupling, mechanical, repetitive, or
-high-throughput work with explicit acceptance criteria.
+Use `dev` for senior coupled implementation and `runner` for narrow,
+mechanical work with explicit acceptance criteria. `qa` independently
+verifies; `git-manager` and `plane-manager` act only on command.
 
 Give every writing agent explicit file or module ownership, expected output,
 validation commands, and disjoint write scope. Keep the parent on the critical
