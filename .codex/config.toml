@@ -1,0 +1,4 @@
+# Project-local Codex adapters inherit provider, model, and effort from the
+# active parent session. Role instructions are inherited from the project
+# contract.
+model_instructions_file = "../.agents/AGENTS.md"

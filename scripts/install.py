@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install Polyloom plugin into ZCode or Codex.
+"""Install Polyloom project-local Codex and Claude adapters safely by default.
 
 ZCode: registers the plugin in the marketplace + installed records and copies
 plugin files into the plugin cache, exactly as ZCode's GUI install does.
@@ -11,8 +11,11 @@ Codex: copies skill + agent files into the Codex home.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 import shutil
@@ -41,14 +44,25 @@ CODEX_BUNDLE = [
     "agents/runner-worker.toml",
 ]
 
+PROJECT_AGENTS = [".agents/AGENTS.md"] + [f".agents/{name}.md" for name in ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")]
+PROJECT_CODEX = [".codex/config.toml"]
+PROJECT_CLAUDE = [".claude/CLAUDE.md"] + [f".claude/agents/{name}.md" for name in ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")]
+
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Install Polyloom into ZCode or Codex.")
+    raw_args = sys.argv[1:]
+    p = argparse.ArgumentParser(description="Install Polyloom project adapters (Codex+Claude by default) or legacy ZCode/Codex user assets.")
     p.add_argument("--target", type=Path, default=None, help="Codex destination directory (default: auto-detect).")
-    p.add_argument("--runtime", choices=("zcode", "codex"), default="zcode", help="Which runtime to install for (default: zcode).")
+    p.add_argument("--runtime", choices=("zcode", "codex", "claude", "both"), default="both", help="Which runtime to install for (default: both project adapters).")
+    p.add_argument("--scope", choices=("user", "project"), default="project", help="Install scope (default: project; never writes global homes).")
+    p.add_argument("--project-root", type=Path, default=None, help="Project root for --scope project (default: current directory).")
+    p.add_argument("--dry-run", action="store_true", help="Print project plan without writing files.")
+    p.add_argument("--uninstall", action="store_true", help="Remove only manifest-owned project files.")
     p.add_argument("--force", action="store_true", help="Replace existing installation; ZCode removes stale cache files.")
     p.add_argument("--zcode-home", type=Path, default=None, help="ZCode config root (default: ~/.zcode). For tests.")
-    return p.parse_args()
+    args = p.parse_args()
+    args.scope_explicit = any(arg == "--scope" or arg.startswith("--scope=") for arg in raw_args)
+    return args
 
 
 def default_zcode_home() -> Path:
@@ -65,6 +79,115 @@ def validate_bundle(bundle: list[str]) -> None:
     missing = [f for f in bundle if not (REPO_ROOT / f).exists()]
     if missing:
         raise FileNotFoundError(f"missing bundle files: {missing}")
+
+
+def _validate_manifest(data: dict) -> tuple[list[str], dict[str, str]]:
+    files = data.get("files", [])
+    hashes = data.get("hashes", {})
+    if not isinstance(files, list) or not all(isinstance(item, str) for item in files):
+        raise ValueError("manifest files must be a list of relative paths")
+    if not isinstance(hashes, dict) or not all(
+        isinstance(item, str) and isinstance(value, str) for item, value in hashes.items()
+    ):
+        raise ValueError("manifest hashes must be an object of string values")
+    if len(files) != len(set(files)):
+        raise ValueError("manifest files must not contain duplicates")
+    if set(hashes) != set(files):
+        raise ValueError("manifest must contain one hash for every owned file")
+    for item in files:
+        path = Path(item)
+        if not item or path.is_absolute() or ".." in path.parts:
+            raise ValueError(f"manifest path must be relative and contained: {item!r}")
+        if re.fullmatch(r"[0-9a-f]{64}", hashes[item]) is None:
+            raise ValueError(f"manifest hash is invalid for: {item}")
+    return files, hashes
+
+
+def install_project(root: Path, runtime: str, force: bool = False, dry_run: bool = False) -> None:
+    if runtime not in ("codex", "claude", "both"):
+        raise ValueError("project scope supports runtime codex, claude, or both")
+    root = root.resolve()
+    if not root.exists() or not root.is_dir():
+        raise ValueError(f"project root must be an existing directory: {root}")
+    def safe(item: str) -> Path:
+        path = (root / item).resolve()
+        if path != root and root not in path.parents:
+            raise ValueError(f"manifest path escapes project root: {item}")
+        return path
+    bundles = {".agents": PROJECT_AGENTS}
+    if runtime in ("codex", "both"): bundles[".codex"] = PROJECT_CODEX
+    if runtime in ("claude", "both"): bundles[".claude"] = PROJECT_CLAUDE
+    files = [item for bundle in bundles.values() for item in bundle]
+    for bundle in bundles.values(): validate_bundle(bundle)
+    manifest_path = root / ".polyloom-install.json"
+    owned: set[str] = set()
+    data: dict = {}
+    if manifest_path.exists():
+        data = _read_json(manifest_path, {})
+        manifest_files, prior_hashes = _validate_manifest(data)
+        owned = set(manifest_files)
+    else:
+        prior_hashes = {}
+    for item in files: safe(item)
+    for item in owned: safe(item)
+    conflicts = [item for item in files if safe(item).exists() and item not in owned]
+    if conflicts:
+        raise FileExistsError(f"refusing overwrite of unowned files (force cannot override ownership): {conflicts}")
+    modified = []
+    for item in files:
+        destination = safe(item)
+        if item not in owned or not destination.exists():
+            continue
+        if not destination.is_file() or hashlib.sha256(destination.read_bytes()).hexdigest() != prior_hashes[item]:
+            modified.append(item)
+    if modified:
+        raise FileExistsError(f"refusing overwrite of user-modified owned files: {modified}")
+    print(f"project install ({runtime}) -> {root}")
+    if dry_run:
+        for item in files: print(f"[dry run] {item}")
+        return
+    for item in files:
+        destination = safe(item)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPO_ROOT / item, destination)
+    runtimes = set(data.get("runtimes", [])) if manifest_path.exists() else set()
+    runtimes.update(("codex", "claude") if runtime == "both" else (runtime,))
+    all_files = sorted(owned | set(files))
+    hashes = dict(prior_hashes)
+    hashes.update({item: hashlib.sha256((root / item).read_bytes()).hexdigest() for item in files if (root / item).is_file()})
+    _write_json(manifest_path, {"version": 1, "runtimes": sorted(runtimes), "files": all_files, "hashes": hashes})
+
+
+def uninstall_project(root: Path, dry_run: bool = False) -> None:
+    manifest_path = root.resolve() / ".polyloom-install.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"project manifest not found: {manifest_path}")
+    data = _read_json(manifest_path, {})
+    files, hashes = _validate_manifest(data)
+    root = root.resolve()
+    remaining = []
+    remaining_hashes = {}
+    for item in files:
+        path = (root / item).resolve()
+        if path != root and root not in path.parents:
+            raise ValueError(f"manifest path escapes project root: {item}")
+        if not path.exists():
+            continue
+        if hashes and hashes.get(item) != hashlib.sha256(path.read_bytes()).hexdigest():
+            print(f"preserve modified owned file: {item}")
+            remaining.append(item)
+            remaining_hashes[item] = hashes.get(item)
+            continue
+        if dry_run:
+            print(f"[dry run] remove {item}")
+        elif path.is_file():
+            path.unlink()
+    if not dry_run:
+        if remaining:
+            _write_json(manifest_path, {"version": 1, "runtimes": data.get("runtimes", []), "files": remaining, "hashes": remaining_hashes})
+        else:
+            manifest_path.unlink()
+    print(f"project uninstall -> {root.resolve()}")
 
 
 def _now() -> str:
@@ -230,6 +353,24 @@ def install_codex(target: Path, force: bool) -> None:
 def main() -> int:
     args = parse_args()
     try:
+        # A destination flag is the legacy user-install API; retain compatibility
+        # for callers that predate the project-scope default.
+        if args.scope == "project" and not args.scope_explicit and (args.target is not None or args.zcode_home is not None) and args.project_root is None:
+            args.scope = "user"
+        if args.scope == "project":
+            if args.target is not None or args.zcode_home is not None:
+                raise ValueError("project scope uses --project-root, not --target or --zcode-home")
+            if args.uninstall:
+                uninstall_project(args.project_root or Path.cwd(), dry_run=args.dry_run)
+            else:
+                install_project(args.project_root or Path.cwd(), args.runtime, force=args.force, dry_run=args.dry_run)
+            return 0
+        if args.uninstall:
+            raise ValueError("--uninstall is supported only with --scope project")
+        if args.project_root is not None:
+            raise ValueError("--project-root is supported only with --scope project")
+        if args.dry_run or args.runtime in ("claude", "both"):
+            raise ValueError("claude and dry-run are supported only with --scope project")
         if args.runtime == "zcode":
             if args.target is not None:
                 raise ValueError("--target is only supported for codex; use --zcode-home for ZCode")

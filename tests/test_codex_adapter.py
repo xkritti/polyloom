@@ -34,10 +34,11 @@ def test_codex_workers_report_bounded_evidence() -> None:
             assert field in text
 
 
-def test_codex_skill_documents_provider_limit() -> None:
+def test_project_skill_documents_parent_runtime_inheritance() -> None:
     text = (ROOT / "skills/polyloom/SKILL.md").read_text(encoding="utf-8")
     assert "Codex" in text
-    assert "Codex provider cannot be selected" in text
+    assert "inherit provider, model, and reasoning effort" in text
+    assert "never pin them in project files" in text
 
 
 def test_setup_command_is_zcode_only() -> None:
@@ -89,5 +90,7 @@ def test_installer_declares_separate_runtime_paths() -> None:
     text = (ROOT / "scripts/install.py").read_text(encoding="utf-8")
     assert "install_codex" in text
     assert "install_zcode" in text
-    assert 'choices=("zcode", "codex")' in text
+    assert 'choices=("zcode", "codex", "claude", "both")' in text
+    assert 'choices=("user", "project")' in text
+    assert "install_project" in text
     assert "CODEX_HOME" in text

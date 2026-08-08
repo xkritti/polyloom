@@ -1,36 +1,39 @@
 ---
 name: polyloom
 description: >-
-  Run the Polyloom multi-agent software team for material software-development
-  work. Lead coordinates and reviews; Builder handles coupled implementation;
-  Runner handles narrow mechanical work. Models, providers, and reasoning
-  efforts are selected by the user from the active ZCode configuration.
+  Run the Polyloom portable project-local software-development team. The
+  orchestrator coordinates; dev implements; runner handles bounded work; QA
+  independently verifies; git-manager and plane-manager provide on-command
+  support. Project adapters inherit the parent runtime settings.
 ---
 
 # Polyloom
 
 ## Runtime configuration
 
-ZCode supports provider, model, and effort selection through its provider registry.
-Codex agent TOML supports model and `model_reasoning_effort`, but Codex provider
-Codex provider cannot be selected in the agent file; the active Codex provider is configured by
-Codex runtime configuration. Do not claim that Polyloom selects a Codex provider.
+Project-scoped Codex and Claude adapters inherit provider, model, and reasoning
+effort from the active parent runtime. Polyloom does not select or pin those
+values in project files.
 
+Legacy ZCode user-scope installs are separate: their `team.json` and provider
+registry control role aliases and effort settings. Do not apply that legacy
+configuration rule to project-scoped Codex or Claude work.
 
-The lead is the only reviewer. Lead plans, delegates, inspects diffs, runs verification, and delivers evidence. Lead is coordination-only: Never modify source files directly, write implementation code, create tests, or create migrations. Delegate every repository mutation to Builder or Runner. If work fails, return it to the same responsible worker; the parent may not fix the implementation.
+The orchestrator coordinates and reviews evidence while QA independently verifies. The orchestrator is coordination-only and delegates repository mutations to dev or runner. If work fails, return it to the responsible worker.
 
 ## Team contract
 
-- `lead` is the orchestrator.
-- `builder` handles coupled, ambiguous, multi-file, architecture-sensitive, integration, debugging, and refactoring work.
-- `runner` handles narrow, low-coupling, mechanical, repetitive, or independent file-cluster work.
-- Keep exactly these three roles. Do not create a separate reviewer role.
+- `orchestrator` is the sole coordinator and delegates work.
+- `dev` is the senior/expert implementation role and may dispatch `runner`.
+- `runner` handles narrow, fast, bounded work and may inspect task/PR status.
+- `qa` independently reviews and verifies; it is not the orchestrator.
+- `git-manager` and `plane-manager` act only when explicitly dispatched.
 
 ## Model configuration
 
-- Use the configured provider, model, and reasoning effort for each role.
-- The active ZCode provider/model registry is authoritative. Validate every selection against it. Never hardcode upstream model names or assume an effort variant exists.
-- If a model has no declared reasoning variants, omit the effort.
+- Project adapters inherit provider, model, and reasoning effort from the active parent session; never pin them in project files.
+- Only legacy ZCode user-scope roles use the active provider/model registry and its declared effort variants.
+- Never hardcode upstream model names or assume an effort variant exists in legacy configuration.
 
 ## Execution
 
@@ -42,7 +45,7 @@ The lead is the only reviewer. Lead plans, delegates, inspects diffs, runs verif
 6. Never assign overlapping write scopes to parallel workers. Parallel write scopes are disjoint. Use sequential work when state is shared.
 7. Tell workers to preserve unrelated user changes and repository boundaries.
 8. Worker reports contain only changed files, checks, failures, and risks.
-9. Lead inspects the diff and evidence. Run focused, then risk-appropriate broad checks.
+9. Orchestrator inspects the diff and evidence. Run focused, then risk-appropriate broad checks.
 10. If work fails, return it to the same responsible worker with concrete evidence. The parent may not fix the implementation itself.
 11. Do not deploy, mutate production, commit, push, merge, or open a pull request unless the user authorized it.
 
@@ -59,4 +62,4 @@ Do not use Polyloom for general questions, research, writing-only, operations-on
 
 ## Evidence rule
 
-A worker summary is not proof. Lead must inspect the resulting changes and run the appropriate verification before reporting completion.
+A worker summary is not proof. Orchestrator must inspect the resulting changes and run the appropriate verification before reporting completion.
