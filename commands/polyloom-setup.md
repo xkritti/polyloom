@@ -1,5 +1,5 @@
 ---
-description: Interactive setup wizard for Polyloom team roles.
+description: Configure legacy ZCode compatibility settings for Polyloom.
 argument-hint: "[optional goal to preview after setup]"
 skills: polyloom
 ---
@@ -10,78 +10,47 @@ $ARGUMENTS
 
 ## Setup wizard
 
-This wizard is ZCode-only. Codex setup selects model and effort only; Codex provider is configured by Codex runtime settings and is not asked here.
+This wizard is **ZCode-only** and compatibility-only. Project-scoped Codex adapters
+already carry the six-role model/effort/sandbox matrix; Claude adapters inherit
+Claude's runtime-native configuration. The wizard never displays credentials.
+The Codex provider is configured by the Codex runtime, not by this wizard.
 
-Run this wizard when:
-- `team.json` does not exist (first-time setup), or
-- the user asks to reconfigure a role, or
-- the user asks to reconfigure the whole team.
+Run it when the legacy ZCode `team.json` is missing or when the user explicitly
+asks to reconfigure that compatibility path.
 
-### Step 0 — decide scope
+### Step 0 - choose scope
 
-Read `team.json` (via `polyloom_config.py show`).
+Read `team.json` through `polyloom_config.py show`.
 
-- If `team.json` does not exist or is empty, run **full setup** for all three roles: `lead`, `builder`, `runner`.
-- If `team.json` already has entries, ask the user:
+- For a new file, configure the three legacy ZCode aliases in this order:
+  `lead`, `builder`, `runner`.
+- For an existing legacy file, choose `1) Reconfigure one role`,
+  `2) Reconfigure all roles`, or `3) Keep current team`.
+  Only configure the chosen role when option 1 is selected; leave every other
+  role untouched. Leave the other two untouched in a legacy three-role file.
+- A team file containing canonical project roles is not a ZCode configuration;
+  use the project-scoped Codex adapters instead. Do not mix role sets.
 
-  ```
-  1) Reconfigure one role
-  2) Reconfigure all roles
-  3) Keep current team
-  ```
+### Step 1 - per-role configuration
 
-- If the user picks `1`, ask which role:
+For each selected role:
 
-  ```
-  1) lead (current: provider/model/effort)
-  2) builder (current: provider/model/effort)
-  3) runner (current: provider/model/effort)
-  ```
+1. Run `polyloom_config.py list` and show only enabled providers and their
+   provider/model entries (never API keys).
+2. Ask one field at a time: choose a **provider**, then choose a **model**,
+   then choose the **effort** when the selected model declares variants.
+3. Save with:
+   `polyloom_config.py set ROLE PROVIDER MODEL [EFFORT]`.
 
-  Only configure the chosen role. Leave the other two untouched.
-- If the user picks `2`, run full setup for all three roles in order.
-- If the user picks `3`, skip setup entirely.
+Accept an unambiguous short answer. `skip` leaves a role unchanged with a
+completeness warning; `back` returns to the previous question; `same as <role>`
+copies that role's selection.
 
-### Step 1 — per-role configuration
+### Step 2 - summary and validation
 
-For each role that will be configured (either the single chosen role, or all three in order: `lead`, `builder`, `runner`):
+Print a summary with role, provider, model, and effort, then run
+`polyloom_config.py validate`. If valid, confirm the compatibility team is
+ready. If a goal was supplied, continue with `/polyloom`.
 
-1. Show available providers from the active ZCode config by calling `polyloom_config.py list`. Each line shows `provider/model: efforts`.
-2. Ask the user to choose a **provider** first. Show only enabled providers.
-3. After the user picks a provider, show only models under that provider. Ask the user to choose a **model**.
-4. After the user picks a model, check if that model has reasoning variants. If yes, show the supported efforts and ask the user to choose one. If no variants exist, skip the effort question.
-5. Save by calling:
-   ```
-   polyloom_config.py set <role> <provider> <model> <effort>
-   ```
-   Omit `<effort>` if the model has no reasoning variants.
-
-### Step 2 — summary and validation
-
-After configuration is done:
-
-6. Show a summary table:
-
-   ```
-   | Role    | Provider | Model         | Effort  |
-   |---------|----------|---------------|---------|
-   | lead    | ...      | gpt-5.6-sol   | medium  |
-   | builder | ...      | gpt-5.6-terra | high    |
-   | runner  | ...      | gpt-5.6-luna  | low     |
-   ```
-
-7. Validate the full team by calling `polyloom_config.py validate`.
-8. If valid, confirm the team is ready. If the user provided a goal as argument, proceed to orchestrate it using `/polyloom`.
-
-### Rules
-
-- Ask one field at a time: provider, then model, then effort.
-- Do not ask all three roles in a single message when reconfiguring one role.
-- Only show models from enabled providers.
-- Never display API keys or credentials.
-- If the user types `skip`, leave that role unchanged and warn that the team may be incomplete.
-- If the user types `back`, return to the previous question.
-- Accept short answers: partial provider ID or model name if unambiguous.
-- If the user says "same as builder" for runner, copy the previous selection.
-- Respond in the user's language: Thai or English.
-- Keep technical identifiers, provider IDs, and model names unchanged.
+Respond in the user's language (Thai or English). Keep technical identifiers,
+file paths, commands, and error messages unchanged.

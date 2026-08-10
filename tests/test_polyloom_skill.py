@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,11 +16,11 @@ def test_six_role_contract_and_orchestrator_is_read_only() -> None:
     assert "independently verifies" in text
 
 
-def test_skill_declares_luna_max_without_legacy_worker_names() -> None:
+def test_skill_declares_canonical_model_matrix_without_legacy_worker_names() -> None:
     text = skill()
-    assert "gpt-5.6-luna" in text
-    assert "max" in text
-    for value in ("gpt-5.6-sol", "gpt-5.6-terra", "terra_worker", "luna_worker"):
+    for value in ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "max", "medium"):
+        assert value in text
+    for value in ("terra_worker", "luna_worker"):
         assert value not in text
     assert "security_reviewer" not in text
     assert "code_mapper" not in text
@@ -41,7 +42,7 @@ def test_model_effort_and_language_policy() -> None:
 
 def test_token_and_evidence_policy() -> None:
     text = skill()
-    assert "full parent transcript" in text
+    assert "full parent transcript" in re.sub(r"\s+", " ", text)
     assert "relevant context" in text
     for field in ("changed files", "checks", "failures", "risks"):
         assert field in text
@@ -53,21 +54,24 @@ def test_safe_parallelism_and_verification() -> None:
     assert "write scopes are disjoint" in text
     assert "Run focused, then risk-appropriate broad checks" in text
     assert "Do not deploy" in text
-    assert "user authorized" in text
+    assert "authorized that lifecycle action" in text
 
 
 def test_command_preserves_six_roles() -> None:
-    command = (ROOT / "commands/polyloom.md").read_text(encoding="utf-8")
+    command = re.sub(r"\s+", " ", (ROOT / "commands/polyloom.md").read_text(encoding="utf-8"))
     assert "skills: polyloom" in command
     assert "$ARGUMENTS" in command
     assert "QA independently reviews" in command
-    assert "Luna Max" in command
+    assert "gpt-5.6-luna`/`max" in command
+    assert "gpt-5.6-luna`/`medium" in command
+    assert "Luna Max" not in command
     assert "team configuration" in command
     assert "model alias" in command
     assert "coordination-only" in command
     assert "overlapping write scopes" in command
     assert "same responsible worker" in command
-    assert "user authorized" in command
+    assert "explicitly authorized that lifecycle action" in command
+    assert command.count("same responsible worker") == 1
 
 
 def test_plugin_manifest_bundles_skill_and_command() -> None:

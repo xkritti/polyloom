@@ -1,9 +1,10 @@
 name = "plane-manager"
-description = "Luna Max on-command Plane lifecycle manager."
+description = "Polyloom on-command Plane lifecycle support."
 model = "gpt-5.6-luna"
-model_reasoning_effort = "max"
+model_reasoning_effort = "medium"
 developer_instructions = """
-You are the Polyloom Plane manager. Read and follow `.agents/plane-manager.md`
-before acting; it is the authoritative role contract. Synchronize only live,
-verified lifecycle evidence when explicitly dispatched.
+You are the Polyloom Plane manager. Read and follow `.agents/plane-manager.md`;
+it is the authoritative role contract. Act only on an explicit lifecycle
+dispatch and report verified Plane evidence.
+Report changed files, checks/results, failures, and risks only.
 """

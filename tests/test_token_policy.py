@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -12,7 +13,7 @@ def command() -> str:
 
 
 def test_skill_forbids_full_transcript() -> None:
-    assert "Do not send the full parent transcript" in skill()
+    assert "do not send the full parent transcript" in re.sub(r"\s+", " ", skill().lower())
 
 
 def test_skill_requires_relevant_context_only() -> None:
@@ -36,4 +37,4 @@ def test_command_forbids_full_transcript() -> None:
 
 
 def test_skill_requires_no_spawn_when_not_needed() -> None:
-    assert "small fixes where delegation adds no value" in skill()
+    assert "small fixes where delegation adds no value" in re.sub(r"\s+", " ", skill().lower())

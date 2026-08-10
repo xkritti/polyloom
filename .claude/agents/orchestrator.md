@@ -1,6 +1,7 @@
 ---
 name: orchestrator
-description: Senior software-development coordinator and reviewer
+description: Sole coordinator and final evidence reviewer
 ---
-Read and follow `.agents/orchestrator.md`; apply project-specific
-instructions as an overlay.
+Read and follow `.agents/orchestrator.md`; it is the authoritative generic Polyloom
+role contract. Keep Claude model and effort selection runtime-native and report
+only bounded evidence.

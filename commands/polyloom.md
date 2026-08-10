@@ -1,5 +1,5 @@
 ---
-description: Start the Polyloom multi-agent software team.
+description: Start the Polyloom six-role software-agent team.
 argument-hint: "[goal or issue description]"
 skills: polyloom
 ---
@@ -10,46 +10,57 @@ $ARGUMENTS
 
 ## Startup checks
 
-Codex project roles are native custom agents pinned to Luna Max; Claude project
-adapters use their native runtime configuration. Neither requires `team.json`.
-Only the legacy ZCode user-scope path uses
-`team.json` and provider registry validation.
+Polyloom project adapters are runtime-native:
 
-Before delegating, the orchestrator must:
+The fixed role-specific model, effort, and sandbox matrix below is authoritative.
 
-1. For project-scoped Codex work, spawn the named role from `.codex/agents/`; every role uses `gpt-5.6-luna` with `max` effort. For Claude work, use the native adapter files in the project.
-2. (Legacy ZCode only) Read the team configuration from the plugin data directory (`team.json`).
-   If missing, tell the user to run `polyloom_config.py set` for each role.
-3. Validate every legacy ZCode role entry against the active provider/model registry.
-4. Report configured legacy ZCode role selections to
-   the user before starting work.
-5. If the user selected different efforts for legacy roles, warn that
-   ZCode currently applies effort at the session level and cannot split it
-   per child agent.
+- Codex loads the six named agents from `.codex/agents/` with the fixed model,
+  effort, and sandbox matrix in the skill. The orchestrator is
+  `gpt-5.6-sol`/`medium` and `sandbox_mode = "read-only"`; dev is
+  `gpt-5.6-luna`/`max`; runner is `gpt-5.6-luna`/`max`; QA is
+  `gpt-5.6-terra`/`medium` and read-only; Git and Plane managers are
+  `gpt-5.6-luna`/`medium`.
+- Claude loads `.claude/agents/` and keeps model/effort selection native to the
+  Claude runtime; never add OpenAI model IDs to Claude adapters.
+- Legacy ZCode is compatibility-only. If its `team.json` exists, validate the
+  team configuration and provider/model registry before using that path and report the configured
+  aliases honestly; the legacy model alias is not a project default. It does
+  not override project topology or Codex defaults.
+
+Before assigning work, the orchestrator must inspect repository instructions,
+current changes, and dependencies, then write a short outcome-focused plan.
 
 ## Orchestration rules
 
-- Classify the goal. If it is not material software development, answer
-  directly without spawning workers.
-- Form a short outcome-focused plan before delegation.
-- Give each worker a concrete goal, explicit file or module ownership,
-  acceptance criteria, validation commands, and expected evidence format.
-- Send only relevant context. Do not send the full parent transcript.
-- Never assign overlapping write scopes to parallel workers. Parallel write
-  scopes are disjoint. Use sequential work when state is shared.
-- Worker reports must contain only changed files, checks, failures, and risks.
-- If work fails, return it to the same responsible worker with concrete
-  evidence. The parent may not fix the implementation.
-- Do not deploy, commit, push, merge, or open a pull request unless user authorized.
+- The `orchestrator` is the sole coordinator and final evidence reviewer. Only
+  it may assign or spawn core roles. The user may dispatch Git or Plane managers
+  directly only for an explicitly requested lifecycle action.
+  The orchestrator is coordination-only and remains read-only.
+- Give each dispatch a complete payload: **goal**, **exact ownership
+  (files/modules)**, **constraints**, **acceptance criteria**, **validation
+  commands**, **expected evidence**, and **dependency/order**. Send only
+  relevant context; do not send the full parent transcript.
+- Dev is autonomous and completes its assigned implementation end to end. Dev
+  must not spawn, delegate, assign, route work, or request implementation
+  changes from the orchestrator.
+- Runner receives detailed, low-judgment executable work and must not design,
+  broaden scope, or delegate.
+- QA independently reviews read-only and returns `PASS`, `PARTIAL`, or
+  `BLOCKED`. Git and Plane managers act only on explicit lifecycle dispatches.
+- Never use overlapping write scopes in parallel. If work fails or is blocked,
+  report concrete evidence to the orchestrator and return it to the same
+  responsible worker; the parent may not fix implementation work.
+- When workload and complexity materially benefit from parallelism, the
+  orchestrator may spawn 3-7 dev agents with disjoint write scopes; shared-state
+  work is sequential.
+- Worker reports contain only changed files, checks/results, failures, and
+  risks. Review actual diffs and command output before final sign-off.
+- Do not deploy, mutate production, commit, push, merge, or open a pull request
+  unless the user explicitly authorized that lifecycle action.
 
-## Orchestrator constraints
+## Routing outcome
 
-- Orchestrator is coordination-only; QA independently verifies.
-- Never modify repository files from the orchestrator context.
-- QA independently reviews worker output; the orchestrator coordinates.
-
-## Legacy ZCode model routing
-
-- Use the `model` alias from `team.json` when invoking child agents.
-- The `model` value must match an alias the ZCode runtime can resolve.
-- If a model alias is unknown, report the configuration gap immediately.
+Classify the goal before spawning. Use dev for coupled implementation, runner
+for bounded mechanical work, QA for independent verification, and lifecycle
+support only when explicitly requested. The orchestrator owns integration and
+the final evidence-backed result; **QA independently reviews** before sign-off.

@@ -172,7 +172,7 @@ def test_setup_menu_has_completion_output() -> None:
 
 def test_setup_menu_has_role_order() -> None:
     text = SETUP.read_text(encoding="utf-8")
-    assert "ROLES = (\"lead\", \"builder\", \"runner\")" in text
+    assert "ROLES = LEGACY_ZCODE_ROLES" in text
 
 
 def test_setup_menu_has_install_script() -> None:
@@ -202,7 +202,9 @@ def test_setup_menu_keeps_zcode_and_codex_separate() -> None:
 
 
 def test_setup_menu_has_summary_function() -> None:
-    assert "def print_summary" in SETUP.read_text(encoding="utf-8")
+    text = SETUP.read_text(encoding="utf-8")
+    assert "def print_summary" in text
+    assert text.count("def print_summary") == 1
 
 
 def test_setup_menu_has_configure_functions() -> None:
@@ -282,7 +284,7 @@ def test_setup_menu_has_runtime_choices_help() -> None:
 
 def test_setup_menu_has_role_selection() -> None:
     text = SETUP.read_text(encoding="utf-8")
-    assert "values = {role: getattr(args, role) for role in ROLES}" in text
+    assert "values = {role: getattr(args, role, None) for role in role_set}" in text
 
 
 def test_setup_menu_has_provider_model_effort_entry() -> None:

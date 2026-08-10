@@ -31,8 +31,8 @@ def test_setup_noninteractive_codex(tmp_path: Path):
     )
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "skills/polyloom/SKILL.md").exists()
-    assert (tmp_path / "agents/lead.toml").exists()
-    for name in ("lead.toml", "builder-worker.toml", "runner-worker.toml"):
+    assert (tmp_path / "agents/orchestrator.toml").exists()
+    for name in ("orchestrator.toml", "dev.toml", "runner.toml", "qa.toml", "git-manager.toml", "plane-manager.toml"):
         agent = (tmp_path / "agents" / name).read_text()
         assert re.search(r'^model = "gpt-test"$', agent, re.MULTILINE)
         assert re.search(r'^model_reasoning_effort = "high"$', agent, re.MULTILINE)
@@ -45,7 +45,7 @@ def test_setup_can_update_only_the_codex_effort(tmp_path: Path):
         capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
-    agent = (tmp_path / "agents" / "lead.toml").read_text()
+    agent = (tmp_path / "agents" / "orchestrator.toml").read_text()
     assert re.search(r'^model = "gpt-5.6-sol"$', agent, re.MULTILINE)
     assert re.search(r'^model_reasoning_effort = "low"$', agent, re.MULTILINE)
 

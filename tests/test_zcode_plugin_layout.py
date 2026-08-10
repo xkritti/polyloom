@@ -19,7 +19,7 @@ def test_command_loads_polyloom_skill() -> None:
 def test_skill_declares_role_names_and_luna_max() -> None:
     skill = (ROOT / "skills/polyloom/SKILL.md").read_text()
     assert all(role in skill for role in ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager"))
-    assert "gpt-5.6-sol" not in skill
-    assert "gpt-5.6-terra" not in skill
+    assert "gpt-5.6-sol" in skill
+    assert "gpt-5.6-terra" in skill
     assert "gpt-5.6-luna" in skill
     assert "max" in skill

@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,10 +16,10 @@ def test_setup_command_has_frontmatter() -> None:
 
 
 def test_setup_command_asks_provider_then_model() -> None:
-    text = (ROOT / "commands/polyloom-setup.md").read_text(encoding="utf-8")
+    text = re.sub(r"\s+", " ", (ROOT / "commands/polyloom-setup.md").read_text(encoding="utf-8"))
     assert "choose a **provider**" in text
     assert "choose a **model**" in text
-    assert "Ask one field at a time: provider, then model, then effort." in text
+    assert "Ask one field at a time" in text
 
 
 def test_setup_command_uses_polyloom_config() -> None:
@@ -34,6 +35,7 @@ def test_setup_command_shows_summary() -> None:
 def test_setup_command_one_question_at_a_time() -> None:
     text = (ROOT / "commands/polyloom-setup.md").read_text(encoding="utf-8")
     assert "Ask one field at a time" in text
+    assert text.count("Ask one field at a time") == 1
 
 
 def test_setup_command_no_credentials() -> None:

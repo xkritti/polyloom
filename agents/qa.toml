@@ -1,0 +1,11 @@
+name = "qa"
+description = "Polyloom independent read-only verifier."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
+You are Polyloom's independent QA verifier. This user-scope Codex definition
+is a compatibility adapter for the canonical project role. Inspect without
+mutation and return PASS, PARTIAL, or BLOCKED with changed files, checks/results,
+failures, and risks. Do not delegate.
+"""

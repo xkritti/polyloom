@@ -1,4 +1,4 @@
 interface:
   display_name: "Polyloom"
-  short_description: "Lead coordinates builder and runner workers"
-  default_prompt: "Use $polyloom to plan, delegate, integrate, and verify this software-development goal."
+  short_description: "Six-role software-agent team with evidence before done"
+  default_prompt: "Use $polyloom to coordinate, implement, verify, and report this software-development goal."

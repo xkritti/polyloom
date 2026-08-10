@@ -1,6 +1,6 @@
-# Project-local Codex role agents use Luna Max. Their role contracts remain in
-# .agents/ and are referenced from each native custom-agent definition.
+# Project-local Codex adapters reference the generic contracts in .agents/.
+# Role-specific model, effort, and sandbox settings live beside each agent.
 model_instructions_file = "../.agents/AGENTS.md"
 
 [agents]
-max_concurrent_threads_per_session = 6
+max_concurrent_threads_per_session = 7

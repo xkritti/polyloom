@@ -36,9 +36,8 @@ def test_installer_codex_copies_skill_and_agents(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
     assert (target / "skills/polyloom/SKILL.md").exists()
-    assert (target / "agents/lead.toml").exists()
-    assert (target / "agents/builder-worker.toml").exists()
-    assert (target / "agents/runner-worker.toml").exists()
+    for name in ("orchestrator.toml", "dev.toml", "runner.toml", "qa.toml", "git-manager.toml", "plane-manager.toml"):
+        assert (target / "agents" / name).exists()
 
 
 def test_installer_zcode_overlays_bundled_files_without_force(tmp_path: Path) -> None:

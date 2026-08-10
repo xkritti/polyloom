@@ -8,9 +8,13 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from team_topology import LEGACY_ZCODE_ROLES  # noqa: E402
 from zcode_config import load_zcode_config, validate_role_config  # noqa: E402
 
-ROLES = ("lead", "builder", "runner")
+# This CLI is bundled only in the legacy ZCode plugin. Keep its persisted team
+# keys isolated from the canonical project-scoped six-role topology.
+ROLES = LEGACY_ZCODE_ROLES
+CONFIGURABLE_ROLES = ROLES
 
 
 def provider_enabled(provider: dict) -> bool:
@@ -29,7 +33,7 @@ def cmd_list(config: dict) -> int:
 
 def cmd_show(team_path: Path) -> int:
     team = json.loads(team_path.read_text(encoding="utf-8"))
-    for role in ROLES:
+    for role in CONFIGURABLE_ROLES:
         entry = team.get(role)
         if entry:
             line = f"{role}: {entry['provider']}/{entry['model']}"
@@ -40,7 +44,7 @@ def cmd_show(team_path: Path) -> int:
 
 
 def cmd_set(config: dict, team_path: Path, role: str, provider: str, model: str, effort: str | None) -> int:
-    if role not in ROLES:
+    if role not in CONFIGURABLE_ROLES:
         print(f"unknown role: {role}; choose from {', '.join(ROLES)}", file=sys.stderr)
         return 1
     entry = config.get("provider", {}).get(provider)
@@ -51,10 +55,15 @@ def cmd_set(config: dict, team_path: Path, role: str, provider: str, model: str,
     team: dict = {}
     if team_path.exists():
         team = json.loads(team_path.read_text(encoding="utf-8"))
+    current_roles = set(team)
+    if current_roles - set(ROLES):
+        print("team file contains non-legacy project roles; use project adapters for the six-role topology", file=sys.stderr)
+        return 1
     new_entry = {"provider": provider, "model": model}
     if effort is not None:
         new_entry["effort"] = effort
     team[role] = new_entry
+    team_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = team_path.with_suffix(".tmp")
     tmp.write_text(json.dumps(team, indent=2) + "\n", encoding="utf-8")
     tmp.replace(team_path)

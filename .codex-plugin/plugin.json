@@ -1,18 +1,27 @@
 {
   "name": "polyloom",
   "version": "0.1.0",
-  "description": "Polyloom multi-agent software team for Codex.",
-  "author": { "name": "xkritti" },
+  "description": "Polyloom six-role software-agent team for Codex.",
+  "author": {
+    "name": "xkritti"
+  },
   "license": "MIT",
   "skills": "./skills/",
   "interface": {
     "displayName": "Polyloom",
-    "shortDescription": "Project-local six-role software-development team for Codex and Claude.",
-    "longDescription": "Polyloom provides an orchestrator, senior dev, bounded runner, independent QA verifier, and on-command Git and Plane support roles.",
+    "shortDescription": "Six-role software-agent team for Codex and Claude.",
+    "longDescription": "Polyloom provides one read-only orchestrator, an autonomous dev, a bounded runner, independent read-only QA, and on-command Git and Plane lifecycle support.",
     "developerName": "xkritti",
     "category": "Developer Tools",
-    "capabilities": ["Plan", "Delegate", "Implement", "Verify"],
-    "defaultPrompt": ["Use $polyloom to plan, delegate, integrate, and verify this software-development goal."],
+    "capabilities": [
+      "Plan",
+      "Delegate",
+      "Implement",
+      "Verify"
+    ],
+    "defaultPrompt": [
+      "Use $polyloom to coordinate, implement, verify, and report this software-development goal."
+    ],
     "composerIcon": "./assets/polyloom-mark.png",
     "logo": "./assets/polyloom-mark.png",
     "logoDark": "./assets/polyloom-mark.png"

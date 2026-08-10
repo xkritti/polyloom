@@ -1,7 +1,7 @@
 @../.agents/AGENTS.md
 
-Project-local role adapters live in `.claude/agents/` and share the generic
-contracts in `.agents/`. Use `orchestrator`, `dev`, and `runner` for
-software work; use `qa` for independent validation; invoke `git-manager` and
-`plane-manager` only for explicitly requested lifecycle actions. Product
-instructions may overlay these generic software-development contracts.
+Polyloom's Claude adapter uses the six generic role contracts in `.agents/`.
+Claude keeps its own runtime-native model and effort configuration; do not add
+OpenAI model IDs here. The `orchestrator` is the sole coordinator, `dev` is
+autonomous, `runner` is bounded, `qa` is read-only, and Git/Plane managers are
+on-command lifecycle support.

@@ -5,7 +5,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "scripts/install.py"
 PY = sys.executable
-AGENTS = ("lead.toml", "builder-worker.toml", "runner-worker.toml")
+AGENTS = ("orchestrator.toml", "dev.toml", "runner.toml", "qa.toml", "git-manager.toml", "plane-manager.toml")
 PROJECT_ROLES = ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")
 
 
@@ -21,11 +21,23 @@ def test_codex_agents_exist_and_have_runtime_fields() -> None:
         assert "provider =" not in text
 
 
-def test_codex_lead_is_read_only() -> None:
-    text = agent_text("lead.toml").lower()
+def test_codex_orchestrator_is_read_only() -> None:
+    text = agent_text("orchestrator.toml").lower()
     assert "read-only" in text
-    assert "never modify repository files" in text
+    assert "remain read-only" in text
     assert "review" in text
+
+
+def test_legacy_aliases_report_bounded_evidence() -> None:
+    for name in ("lead.toml", "builder-worker.toml", "runner-worker.toml"):
+        text = agent_text(name)
+        for field in ("changed files", "checks", "failures", "risks"):
+            assert field in text
+
+
+def test_legacy_codex_aliases_are_not_installed() -> None:
+    for name in ("lead.toml", "builder-worker.toml", "runner-worker.toml"):
+        assert name not in (ROOT / "scripts/install.py").read_text(encoding="utf-8")
 
 
 def test_codex_workers_report_bounded_evidence() -> None:
@@ -46,8 +58,16 @@ def test_project_agents_are_native_luna_max_custom_agents() -> None:
     for role in PROJECT_ROLES:
         text = (ROOT / ".codex/agents" / f"{role}.toml").read_text(encoding="utf-8")
         assert f'name = "{role}"' in text
-        assert 'model = "gpt-5.6-luna"' in text
-        assert 'model_reasoning_effort = "max"' in text
+        expected = {
+            "orchestrator": ("gpt-5.6-sol", "medium"),
+            "dev": ("gpt-5.6-luna", "max"),
+            "runner": ("gpt-5.6-luna", "max"),
+            "qa": ("gpt-5.6-terra", "medium"),
+            "git-manager": ("gpt-5.6-luna", "medium"),
+            "plane-manager": ("gpt-5.6-luna", "medium"),
+        }[role]
+        assert f'model = "{expected[0]}"' in text
+        assert f'model_reasoning_effort = "{expected[1]}"' in text
         assert 'developer_instructions = """' in text
 
 

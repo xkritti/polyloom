@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from team_topology import LEGACY_ZCODE_ROLES
+
 
 def _load_json(path: Path) -> dict[str, Any]:
     try:
@@ -28,8 +30,12 @@ def default_team_path(plugin_data_dir: Path) -> Path:
 
 def _model(config: dict[str, Any], provider: str, model: str) -> dict[str, Any]:
     try:
-        return config["provider"][provider]["models"][model]
-    except KeyError as error:
+        providers = config["provider"]
+        provider_data = providers[provider]
+        if not provider_data.get("enabled", True) or provider_data.get("systemDisabledReason"):
+            raise ValueError(f"provider unavailable: {provider}")
+        return provider_data["models"][model]
+    except (KeyError, TypeError) as error:
         raise ValueError(f"unknown provider/model: {provider}/{model}") from error
 
 
@@ -41,21 +47,31 @@ def available_efforts(config: dict[str, Any], provider: str, model: str) -> list
 def validate_role_config(
     config: dict[str, Any], provider: str, model: str, effort: str | None
 ) -> None:
+    _model(config, provider, model)
     if effort is not None and effort not in available_efforts(config, provider, model):
         raise ValueError(f"unsupported effort '{effort}' for {provider}/{model}")
 
 
 def validate_team_config(config: dict[str, Any], team: dict[str, Any]) -> None:
-    required = {"lead", "builder", "runner"}
+    if not isinstance(team, dict):
+        raise ValueError("team configuration must be an object")
+    # ZCode is a compatibility runtime. Its persisted team file intentionally
+    # retains the historical three aliases and is independent of project
+    # scoped six-role adapters.
+    required = set(LEGACY_ZCODE_ROLES)
     roles = set(team)
     missing = required - roles
     unknown = roles - required
-    if missing:
-        raise ValueError(f"missing roles: {', '.join(sorted(missing))}")
     if unknown:
         raise ValueError(f"unknown roles: {', '.join(sorted(unknown))}")
+    if missing:
+        raise ValueError(f"missing roles: {', '.join(sorted(missing))}")
     for role in sorted(required):
         entry = team[role]
+        if not isinstance(entry, dict):
+            raise ValueError(f"invalid configuration for role: {role}")
+        if "provider" not in entry or "model" not in entry:
+            raise ValueError(f"missing provider/model for role: {role}")
         validate_role_config(
             config,
             provider=entry["provider"],

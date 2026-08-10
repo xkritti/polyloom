@@ -34,14 +34,18 @@ ZCODE_BUNDLE = [
     "skills/polyloom/SKILL.md",
     "scripts/polyloom_config.py",
     "scripts/zcode_config.py",
+    "scripts/team_topology.py",
     "scripts/validate.py",
 ]
 
 CODEX_BUNDLE = [
     "skills/polyloom/SKILL.md",
-    "agents/lead.toml",
-    "agents/builder-worker.toml",
-    "agents/runner-worker.toml",
+    "agents/orchestrator.toml",
+    "agents/dev.toml",
+    "agents/runner.toml",
+    "agents/qa.toml",
+    "agents/git-manager.toml",
+    "agents/plane-manager.toml",
 ]
 
 PROJECT_AGENTS = [".agents/AGENTS.md"] + [f".agents/{name}.md" for name in ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")]
@@ -332,7 +336,8 @@ def install_codex(target: Path, force: bool) -> None:
     agents_dest = target / "agents"
 
     existing: list[Path] = []
-    for p in [skills_dest, agents_dest / "lead.toml", agents_dest / "builder-worker.toml", agents_dest / "runner-worker.toml"]:
+    all_agent_names = [Path(item).name for item in CODEX_BUNDLE[1:]]
+    for p in [skills_dest, *(agents_dest / name for name in all_agent_names)]:
         if p.exists():
             existing.append(p)
     if existing and not force:
@@ -344,7 +349,7 @@ def install_codex(target: Path, force: bool) -> None:
     shutil.copy2(REPO_ROOT / "skills/polyloom/SKILL.md", skills_dest / "SKILL.md")
 
     agents_dest.mkdir(parents=True, exist_ok=True)
-    for name in ("lead.toml", "builder-worker.toml", "runner-worker.toml"):
+    for name in all_agent_names:
         shutil.copy2(REPO_ROOT / "agents" / name, agents_dest / name)
 
     print(f"installed polyloom (codex) -> {target}")

@@ -23,6 +23,7 @@ import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from zcode_config import load_zcode_config, validate_team_config
+from team_topology import LEGACY_ZCODE_ROLES, ROLE_NAMES
 
 
 def catalog_providers(config: dict) -> list[str]:
@@ -57,7 +58,7 @@ def choose_zcode_role(config: dict, role: str) -> dict[str, str]:
 def print_summary(selections: dict[str, dict[str, str]]) -> None:
     print("Summary")
     for role, entry in selections.items():
-        print(f"{role}: {entry}")
+        print(f"{role}: {entry.get('provider', '-')}/{entry.get('model', '-')} ({entry.get('effort', '-')})")
 
 
 def confirm_overwrite(path: Path) -> str:
@@ -86,17 +87,22 @@ def interactive_overwrite(target: Path | None, runtime: str, force: bool) -> tup
 
 
 def choose_roles_to_configure(existing: dict[str, dict[str, str]] | None) -> list[str]:
+    existing_roles = set(existing or {})
+    available_roles = list(ROLES)
+    if existing_roles and not existing_roles.issubset(set(ROLES)):
+        raise ValueError("ZCode team.json accepts only legacy roles: lead, builder, runner")
     if not existing:
-        return list(ROLES)
+        # Canonical equivalent of the legacy `return list(ROLES)` path.
+        return available_roles
     choice = select_menu(
         "Reconfigure:",
         [("one", "One role"), ("all", "All roles"), ("keep", "Keep current team")],
     )
     if choice == "all":
-        return list(ROLES)
+        return available_roles
     if choice == "keep":
         return []
-    return [select_menu("Which role?", [(r, f"{r} (current: {existing.get(r, {}).get('model', '-')})") for r in ROLES])]
+    return [select_menu("Which role?", [(r, f"{r} (current: {existing.get(r, {}).get('model', '-')})") for r in available_roles])]
 
 
 def configure_zcode_catalog(config_path: Path, team: Path, dry_run: bool) -> None:
@@ -126,7 +132,8 @@ def configure_zcode_catalog(config_path: Path, team: Path, dry_run: bool) -> Non
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALL = ROOT / "scripts" / "install.py"
-ROLES = ("lead", "builder", "runner")
+ROLES = LEGACY_ZCODE_ROLES
+PROJECT_ROLES = ROLE_NAMES
 
 
 def parser() -> argparse.ArgumentParser:
@@ -139,9 +146,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--interactive", action="store_true")
     p.add_argument("--non-interactive", action="store_true")
-    p.add_argument("--lead")
-    p.add_argument("--builder")
-    p.add_argument("--runner")
+    for role in ROLES:
+        option = "--" + role
+        dest = role.replace("-", "_")
+        p.add_argument(option, dest=dest)
     p.add_argument("--codex-model")
     p.add_argument("--codex-effort")
     p.add_argument("--codex-provider", help=argparse.SUPPRESS)
@@ -183,12 +191,6 @@ def interactive_zcode_role(role: str, config: dict) -> dict[str, str]:
     return choose_zcode_role(config, role)
 
 
-def print_summary(selections: dict[str, dict[str, str]]) -> None:
-    print("Summary")
-    for role, entry in selections.items():
-        print(f"{role}: {entry.get('provider', '-')}/{entry.get('model', '-')} ({entry.get('effort', '-')})")
-
-
 def configure_zcode(args: argparse.Namespace, team: Path, dry_run: bool) -> None:
     config = load_zcode_config(args.zcode_config)
     existing = {}
@@ -197,12 +199,16 @@ def configure_zcode(args: argparse.Namespace, team: Path, dry_run: bool) -> None
             existing = json.loads(team.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             existing = {}
-    values = {role: getattr(args, role) for role in ROLES}
+    existing_roles = set(existing)
+    if existing_roles - set(ROLES):
+        raise ValueError("ZCode team.json accepts only legacy roles: lead, builder, runner")
+    role_set = ROLES
+    values = {role: getattr(args, role, None) for role in role_set}
     has_flags = any(values.values())
     if args.non_interactive and not has_flags:
         raise ValueError("missing role selection flags for non-interactive mode")
     if has_flags:
-        roles = [r for r in ROLES if values[r]]
+        roles = [r for r in role_set if values.get(r)]
     else:
         roles = choose_roles_to_configure(existing)
     selections = {}
@@ -247,8 +253,11 @@ def configure_codex_agents(target: Path, model: str | None, effort: str | None) 
     settings = {key: value for key, value in settings.items() if value is not None}
     if not settings:
         return
-    for name in ("lead.toml", "builder-worker.toml", "runner-worker.toml"):
+    names = [f"{role}.toml" for role in PROJECT_ROLES]
+    for name in names:
         path = target / "agents" / name
+        if not path.exists():
+            continue
         text = path.read_text(encoding="utf-8")
         for key, value in settings.items():
             text, replacements = re.subn(
@@ -312,7 +321,8 @@ def main(argv: list[str] | None = None) -> int:
         if runtime in ("zcode", "both") and not skip_zcode:
             run_install("zcode", args.target, args.force, args.dry_run)
             team = args.team or Path.home() / ".zcode/cli/plugins/cache/polyloom-local/polyloom/0.1.0/data/team.json"
-            if not args.non_interactive or args.lead or args.builder or args.runner:
+            role_values = [getattr(args, role, None) for role in ROLES]
+            if not args.non_interactive or any(role_values):
                 configure_zcode(args, team, args.dry_run)
         if runtime in ("codex", "both") and not skip_codex:
             run_install("codex", args.target, args.force, args.dry_run)

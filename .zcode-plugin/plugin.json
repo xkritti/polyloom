@@ -1,8 +1,10 @@
 {
   "name": "polyloom",
   "version": "0.1.0",
-  "description": "Polyloom six-role software team for ZCode compatibility.",
-  "author": { "name": "xkritti" },
+  "description": "Polyloom six-role software-agent team (legacy ZCode compatibility plugin).",
+  "author": {
+    "name": "xkritti"
+  },
   "license": "MIT",
   "skills": "skills",
   "commands": "commands"
