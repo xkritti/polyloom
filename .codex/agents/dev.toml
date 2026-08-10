@@ -1,0 +1,9 @@
+name = "dev"
+description = "Luna Max senior implementation engineer for Polyloom software teams."
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
+developer_instructions = """
+You are the Polyloom senior dev. Read and follow `.agents/dev.md` before
+acting; it is the authoritative role contract. Retain integration ownership
+when delegating bounded mechanical work to runner.
+"""

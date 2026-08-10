@@ -10,13 +10,14 @@ $ARGUMENTS
 
 ## Startup checks
 
-Codex and Claude project adapters do not require `team.json`; they inherit the
-parent runtime configuration. Only the legacy ZCode user-scope path uses
+Codex project roles are native custom agents pinned to Luna Max; Claude project
+adapters use their native runtime configuration. Neither requires `team.json`.
+Only the legacy ZCode user-scope path uses
 `team.json` and provider registry validation.
 
 Before delegating, the orchestrator must:
 
-1. For project-scoped Codex and Claude work, use the adapter files in the project and inherit the parent runtime settings.
+1. For project-scoped Codex work, spawn the named role from `.codex/agents/`; every role uses `gpt-5.6-luna` with `max` effort. For Claude work, use the native adapter files in the project.
 2. (Legacy ZCode only) Read the team configuration from the plugin data directory (`team.json`).
    If missing, tell the user to run `polyloom_config.py set` for each role.
 3. Validate every legacy ZCode role entry against the active provider/model registry.

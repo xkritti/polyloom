@@ -15,9 +15,11 @@ def test_six_role_contract_and_orchestrator_is_read_only() -> None:
     assert "independently verifies" in text
 
 
-def test_no_upstream_models_or_roles() -> None:
+def test_skill_declares_luna_max_without_legacy_worker_names() -> None:
     text = skill()
-    for value in ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "terra_worker", "luna_worker"):
+    assert "gpt-5.6-luna" in text
+    assert "max" in text
+    for value in ("gpt-5.6-sol", "gpt-5.6-terra", "terra_worker", "luna_worker"):
         assert value not in text
     assert "security_reviewer" not in text
     assert "code_mapper" not in text
@@ -59,7 +61,7 @@ def test_command_preserves_six_roles() -> None:
     assert "skills: polyloom" in command
     assert "$ARGUMENTS" in command
     assert "QA independently reviews" in command
-    assert "Terra" not in command and "Luna" not in command
+    assert "Luna Max" in command
     assert "team configuration" in command
     assert "model alias" in command
     assert "coordination-only" in command

@@ -45,7 +45,7 @@ CODEX_BUNDLE = [
 ]
 
 PROJECT_AGENTS = [".agents/AGENTS.md"] + [f".agents/{name}.md" for name in ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")]
-PROJECT_CODEX = [".codex/config.toml"]
+PROJECT_CODEX = [".codex/config.toml"] + [f".codex/agents/{name}.toml" for name in ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")]
 PROJECT_CLAUDE = [".claude/CLAUDE.md"] + [f".claude/agents/{name}.md" for name in ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")]
 
 

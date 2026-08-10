@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "scripts/install.py"
 PY = sys.executable
 AGENTS = ("lead.toml", "builder-worker.toml", "runner-worker.toml")
+PROJECT_ROLES = ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")
 
 
 def agent_text(name: str) -> str:
@@ -34,11 +35,20 @@ def test_codex_workers_report_bounded_evidence() -> None:
             assert field in text
 
 
-def test_project_skill_documents_parent_runtime_inheritance() -> None:
+def test_project_skill_documents_luna_max_roles() -> None:
     text = (ROOT / "skills/polyloom/SKILL.md").read_text(encoding="utf-8")
     assert "Codex" in text
-    assert "inherit provider, model, and reasoning effort" in text
-    assert "never pin them in project files" in text
+    assert "gpt-5.6-luna" in text
+    assert "max" in text
+
+
+def test_project_agents_are_native_luna_max_custom_agents() -> None:
+    for role in PROJECT_ROLES:
+        text = (ROOT / ".codex/agents" / f"{role}.toml").read_text(encoding="utf-8")
+        assert f'name = "{role}"' in text
+        assert 'model = "gpt-5.6-luna"' in text
+        assert 'model_reasoning_effort = "max"' in text
+        assert 'developer_instructions = """' in text
 
 
 def test_setup_command_is_zcode_only() -> None:

@@ -4,16 +4,17 @@ description: >-
   Run the Polyloom portable project-local software-development team. The
   orchestrator coordinates; dev implements; runner handles bounded work; QA
   independently verifies; git-manager and plane-manager provide on-command
-  support. Project adapters inherit the parent runtime settings.
+  support. Codex project roles use Luna Max; Claude adapters remain
+  runtime-native.
 ---
 
 # Polyloom
 
 ## Runtime configuration
 
-Project-scoped Codex and Claude adapters inherit provider, model, and reasoning
-effort from the active parent runtime. Polyloom does not select or pin those
-values in project files.
+Codex project roles are native custom agents pinned to `gpt-5.6-luna` with
+`max` reasoning effort. Claude adapters remain runtime-native and inherit their
+own runtime configuration; do not put OpenAI model identifiers in them.
 
 Legacy ZCode user-scope installs are separate: their `team.json` and provider
 registry control role aliases and effort settings. Do not apply that legacy
@@ -31,7 +32,7 @@ The orchestrator coordinates and reviews evidence while QA independently verifie
 
 ## Model configuration
 
-- Project adapters inherit provider, model, and reasoning effort from the active parent session; never pin them in project files.
+- Codex project roles use `gpt-5.6-luna` with `max` reasoning effort; Claude project adapters inherit their runtime configuration.
 - Only legacy ZCode user-scope roles use the active provider/model registry and its declared effort variants.
 - Never hardcode upstream model names or assume an effort variant exists in legacy configuration.
 

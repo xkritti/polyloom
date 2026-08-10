@@ -107,13 +107,19 @@ def validate_project_adapters() -> None:
         path = ROOT / ".agents" / f"{role}.md"
         require(path.exists(), f"missing project role: {role}")
         claude = ROOT / ".claude" / "agents" / f"{role}.md"
-        codex = ROOT / ".codex" / "config.toml"
+        codex = ROOT / ".codex" / "agents" / f"{role}.toml"
         require(claude.exists() and codex.exists(), f"missing runtime adapter: {role}")
         ctext = claude.read_text(encoding="utf-8")
         ttext = codex.read_text(encoding="utf-8")
         require(ctext.startswith("---\n") and "name:" in ctext, f"invalid Claude adapter: {role}")
-        require("model_instructions_file = \"../.agents/AGENTS.md\"" in ttext, "invalid Codex project config")
-        require(not re.search(r"(?im)^(provider|model|effort|model_reasoning_effort)\s*[=:]", ctext + "\n" + ttext), f"pinned runtime setting: {role}")
+        require('name = "' + role + '"' in ttext, f"invalid Codex agent name: {role}")
+        require('developer_instructions = """' in ttext, f"missing Codex instructions: {role}")
+        require('model = "gpt-5.6-luna"' in ttext, f"Codex role must use Luna: {role}")
+        require('model_reasoning_effort = "max"' in ttext, f"Codex role must use max effort: {role}")
+        require(not re.search(r"(?im)^provider\s*[=:]", ctext + "\n" + ttext), f"pinned provider: {role}")
+    config = (ROOT / ".codex" / "config.toml").read_text(encoding="utf-8")
+    require("model_instructions_file = \"../.agents/AGENTS.md\"" in config, "invalid Codex project config")
+    require("max_concurrent_threads_per_session = 6" in config, "Codex concurrency limit is missing")
 
 
 def main() -> int:

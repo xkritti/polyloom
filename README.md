@@ -59,6 +59,11 @@ local registration. `scripts/install.py` handles files and registration only;
 `scripts/setup.py` optionally persists Codex model/effort and ZCode team
 settings when values are supplied through flags or interactive setup.
 
+Project-scoped Codex installs include six native custom agents
+(`orchestrator`, `dev`, `runner`, `qa`, `git-manager`, and `plane-manager`),
+each pinned to `gpt-5.6-luna` with `max` reasoning effort. Claude adapters keep
+their own runtime-native model configuration.
+
 ### 2. Configure
 
 Merge the relevant examples instead of replacing existing configuration:

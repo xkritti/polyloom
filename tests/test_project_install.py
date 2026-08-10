@@ -66,9 +66,9 @@ def test_direct_imm_layout(tmp_path: Path):
     roles = ("orchestrator", "dev", "runner", "qa", "git-manager", "plane-manager")
     assert all((tmp_path / ".agents" / f"{r}.md").exists() for r in roles)
     assert all((tmp_path / ".claude/agents" / f"{r}.md").exists() for r in roles)
+    assert all((tmp_path / ".codex/agents" / f"{r}.toml").exists() for r in roles)
     assert (tmp_path / ".codex/config.toml").read_text().find('../.agents/AGENTS.md') >= 0
     assert not (tmp_path / ".agents/roles").exists()
-    assert not (tmp_path / ".codex/agents").exists()
 
 
 def test_modified_owned_manifest_retained_and_force_rejected(tmp_path: Path):

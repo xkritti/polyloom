@@ -1,4 +1,6 @@
-# Project-local Codex adapters inherit provider, model, and effort from the
-# active parent session. Role instructions are inherited from the project
-# contract.
+# Project-local Codex role agents use Luna Max. Their role contracts remain in
+# .agents/ and are referenced from each native custom-agent definition.
 model_instructions_file = "../.agents/AGENTS.md"
+
+[agents]
+max_concurrent_threads_per_session = 6

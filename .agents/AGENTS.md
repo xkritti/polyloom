@@ -11,8 +11,9 @@ One accountable `orchestrator` coordinates work. The hierarchy is
 `runner`. QA validates independently and reports evidence to the orchestrator.
 `git-manager` and `plane-manager` are on-command support roles.
 
-Runtime provider, model, and effort inherit from the active parent session and
-team configuration. Do not pin those values in project-local adapters.
+Codex custom roles are pinned to `gpt-5.6-luna` with `max` reasoning effort.
+Claude adapters remain runtime-native and inherit their model configuration;
+never put an OpenAI model identifier in a Claude adapter.
 
 ## Scope and safety
 
